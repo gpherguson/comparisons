@@ -67,7 +67,9 @@ The codez:
 
 rss - This was to get an idea how I could navigate retrieved feeds using
       Python. It's a simple feed reader that parses Guitar Center's used
-      equipment list which was open in my browser at the moment. 
+      equipment list which was open in my browser at the moment. It reads the
+      items and presents them in an HTML page, so the code could be used as the
+      basis for a CGI.
 
       Here's some timing results for Python, Ruby, and Perl respectively...
 
