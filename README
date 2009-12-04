@@ -1,0 +1,80 @@
+Thu Dec  3 21:25:43 MST 2009
+
+The following are my opinions, not anyone elses. Everyone else is entitled to
+their own opinions, as wrong as they might be. :-)
+
+I've been using Perl for years and years. I started using Ruby mid-2008. I
+decided the other day that it's time to look at this Python thing, to see what
+the differences are, and probably, in the process, screw up my brain forever.
+Heh, what an odd thought. I never did drugs, instead I screwed my brain up by
+cramming in too many programming languages and listening to Monty Python and
+Firesign Theatre during my formative years. 
+
+So, when I first starting looking at Python, I was interested in figuring out
+its similarities to Perl and Ruby, rather than what is different. It's kind of
+that "glass is half full" mentality I've heard about but seldom practice.
+Anyway, I like that, for the most part, Python is like a cross between Perl and
+Ruby, just as Ruby is like a cross between Perl and Java. Talk about inbreeding
+between the languages... but it works well for those of us who have to write
+for the "internets" since these are the primary languages for the web and
+interconnectivity.
+
+I'm interested in hearing how to tweak and tighten the code, but not interested
+in critiques of my programming ability or style - especially for the Python
+code since I'm learning it as I go. The code presented here was written under
+very tight, self-imposed, deadlines, typically less than a day for the initial
+Python version, then less than a day for the Ruby and Perl versions.  The code
+is an example of what I'll write under the gun, but maybe not what I'd come up
+with if I took more time to dig out non-standard libraries. If I need something
+I do a quick search and if I see several recommendations for a particular
+library and can grok it I'll go with it, otherwise I tend to go with whatever
+comes bundled with the language.
+
+After three days my impressions of Python are good. I don't like white-space
+being significant, but the libraries seem to be pretty thorough. The docs don't
+always make sense but I won't blame that on anyone - I think my dsylexia has
+become worse over the last two years, probably from lack of sleep, and too much
+stress. Swiping a phrase from Shakespeare, "To sleep: perchance to dream...".
+
+Ruby's "POLS" attitde - "Principle of least surprise", seems to make the
+libraries do more common-sense things by default. For example, Nokogiri is my
+XML/HTML parser of choice, and it makes it really easy to surf through XML, RSS
+and HTML docs. Compare the longer searche commands required for Perl and
+Python's parsers in the "rss" code for an example. I used Nokogiri for
+production aggregator I wrote, and it was nicely handling malformed RSS that
+other parsers croaked on, so I'm pretty happy and familiar with it. Perl's
+XML::RSS threw errors and refused to work because it didn't like RSS with an
+XML comment trailing the body. XML::RSS didn't turn on the recover flags for
+libxml2, causing me to skip it entirely for another project, and go straight to
+XML::LibXML. I think it's one of those "Ivory Tower" decisions made by the
+developer to try to force the world to supply valid XML - a great idea, but one
+that is doomed for failure in the reality of the internet.
+
+OK, enough blather.
+
+The codez:
+----------
+
+rss - This was to get an idea how I could navigate retrieved feeds using
+      Python. It's a simple feed reader that parses Guitar Center's used
+      equipment list which was open in my browser at the moment. 
+
+      Here's some timing results for Python, Ruby, and Perl respectively...
+
+        Greg-MBP-wireless:rss greg$ for i in "python feed_item_titles.py" "ruby feed_item_titles.rb" "perl feed_item_titles.pl"; do time $i > /dev/null; done
+
+        real    0m0.696s <-- Python v2.6.4
+        user    0m0.115s
+        sys     0m0.063s
+
+        real    0m0.856s <-- ruby 1.8.7 (2009-06-12 patchlevel 174) [i686-darwin9.8.0]
+        user    0m0.301s
+        sys     0m0.088s
+
+        real    0m0.813s <-- This is perl, v5.10.1 built for darwin-thread-multi-2level 
+        user    0m0.282s     (ActiveState's version on MacOS 10.5)
+        sys     0m0.031s
+
+get_docs - Code to retrieve the "Text Process in Python" files. Again, these
+           were in front of me when I came up with the idea.
+
