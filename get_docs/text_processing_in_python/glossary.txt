@@ -1,0 +1,197 @@
+APPENDIX -- GLOSSARY
+-------------------------------------------------------------------
+
+  Asymmetrical Encryption:
+      Encryption using a pair of keys--the first encrypts a
+      message that the second decrypts.  In the most common
+      protocol, the decryption key is kept secret but the
+      encryption key may be widely revealed.  For example, you
+      might publish your encryption--or "public"--key, which lets
+      anyone encrypt a message that only you can decrypt.  The
+      person who first creates the message, of course, has
+      initial access to it, but any third-party without the
+      decryption--or "private"--key cannot access the message.
+      See Section 2.2.4 for a discussion of cryptographic
+      capabilities.
+
+  Big-O Notation, Complexity:
+      Big-O notation is a way of describing the governing
+      asymptotic complexity of an algorithm.  Often such
+      complexity is described using a capital "O" with an
+      expression on "n" following in parentheses.  Textbooks
+      often use a bold letter or a special typeface for the "O".
+      The "O" is originally associated with "order" of
+      complexity.
+
+      The insight behind big-O notation is that many problems
+      require a calculation time that can be expressed as a
+      formula involving the size of the data set or domain at
+      issue.  For the most important complexity orders, constant
+      startup times and even speed multipliers are -overpowered-
+      by the underlying complexity.  For example, suppose that
+      you have an algorithm that takes 100 seconds to initialize
+      some data structures and 10*(N^2) seconds to perform the
+      main calculation.  If you have N=4 objects, the total
+      runtime will be 260 seconds; saving that 100 seconds
+      initialization might seem worthwhile, if possible.
+      However, if you also need to deal with N=10 objects, you
+      are looking at 1,100 seconds in total, and the
+      initialization is a minor component.  Moreover, you might
+      think it significant to go from 10*(N^2) seconds to only
+      2*(N^2) seconds--say, by using a faster CPU or programming
+      language.  Once you consider the 100,100 seconds it will
+      take to calculate for N=100, even the multiplier is not all
+      that important.  In particular if you had a better
+      algorithm that took, for example, 50*N seconds (bigger
+      multiplier), you would be a lot better off only needing
+      50,000 seconds.
+
+      In noting complexity orders, constants and multipliers are
+      conventionally omitted, leaving only the dominant factor.
+      Compexities one often sees are:
+
+      #*------------- Common Big-O Complexities ---------------#
+      O(1)              constant
+      O(log(n))         logarithmic
+      O((log(n))^c)     polylogarithmic
+      O(n)              linear
+      O(n*log(n))       frequent in sorts and other problems
+      O(n^2)            quadratic
+      O(n^c)            polynomial
+      O(c^n)            exponential (super-polynomial)
+
+  Birthday Paradox:
+      The name "birthday paradox" comes from the fact--surprising
+      to many people--that in a room with just 23 people there is
+      a 50 percent chance of two of them sharing a birthday.  A
+      naive hunch is often that, since there are 365 days, it
+      should instead take something like 180 people to reach this
+      likelihood.
+
+      In a broader sense the probability of collision of two
+      events, where N outcomes are possible, reaches 50 percent
+      when approximately sqrt(N) items are collected.  This is a
+      concern when you want hashes, random selections, and the
+      like to consist of only distinct values.
+
+  Cryptographic Hash:
+      A hash with a strong enough noncollision property that a
+      tamperer cannot produce a false message yielding the same
+      hash as does an authentic message.  See Section 2.2.4 for
+      a discussion of cryptographic capabilities.
+
+  Cyclic Redundancy Check (CRC32):
+      See Hash.  Based on mod 2 polynomial operations, CRC32 produces a
+      32-bit "fingerprint" of a set of data.
+
+  Digital Signatures:
+      A means of proving the authenticity of a message.  As with
+      asymmetric encryption, digital signatures involve two keys.
+      The signing key is kept secret, but a published validation
+      key can be used to show that the owner of the signing key
+      used it to authenticate a message.  See Section 2.2.4 for
+      a discussion of cryptographic capabilities.
+
+  Hash:
+      A short value that is used as a "fingerprint" of a larger
+      collection of data.  It should be unlikely that two data sets
+      will yield the same hash value.  Hashes can be used to check
+      for data errors, by comparing data to an indicated hash value
+      (mismatch suggests data error).  Some hashes have sufficient
+      noncollision properties to be used cryptographically.
+
+  Idempotent Function:
+      The property that applying a function to its return value
+      returns an identical value.  That is, if and only if -F- is
+      idempotent then 'F(x)==F(F(x))', for every x.  In a nod to
+      Chaos Theory, we can observe that if some function defined
+      by finite repetitions of composition with F is idempotent,
+      then F has an attractor--that is, if G is idempotent for
+      'G=lambda x:F(F(F(...F(x)...)))'.   This interesting fact
+      is completely unnecessary to understand the rest of this
+      book.
+
+  Immutable:
+      Literally, "cannot be changed."  Some data collection
+      objects--notably tuples and strings, in Python--consist
+      of a set of items, and the membership cannot change over
+      the life of the object.  In contrast, mutable objects like
+      lists and dictionaries can continue to be the same object,
+      while changing their membership.  Since you generally
+      access objects in Python via names (and index positions),
+      it is sometimes easy to confuse the mere name--which can be
+      used at different times to point to different objects--with
+      the underlying objects.  For example, a pattern with tuples
+      like the one below is common:
+
+      >>> tup = (1,2,3)
+      >>> id(tup)
+      248684
+      >>> tup = tup+(4,5,6)
+      >>> tup
+      (1, 2, 3, 4, 5, 6)
+      >>> id(tup)
+      912076
+
+      Even though the name 'tup' is re-bound during the run, the
+      identity of the bound object changes.  Moreover, creating
+      a tuple with the same objects later produces the same
+      identity:
+
+      >>> tup2 = (1,2,3)
+      >>> id(tup2)
+      248684
+
+      Immutable objects are particularly useful as dictionary
+      keys, since they will continue to hash the same way over
+      program run.  However, "hashability" is a stricter
+      constraint than immutability--it is necessary that every
+      member of an immutable object itself be (recursively)
+      immutable in order to be hashable.
+
+  Mutable:
+      Literally, "can be changed."  Data collection objects like
+      lists, dictionaries, and arrays from the [array] module are
+      mutable.  The identity of these objects stays the same,
+      even as their membership changes.  Mutable objects are not
+      (usually) suitable as dictionary keys, however.
+      Conceptually, lists are often used to hold -records- of a
+      data collection, where tuples are used to hold -fields-
+      within a record.  The insight underlying this distinction
+      is that if a record contained different field data, it
+      would not be the same record.  But individual
+      self-identical records can be added or subtracted from a
+      collection, depending on outside events and purposes.
+
+  Public-key Encryption:
+      See Assymmetrical Encryption.
+
+  Referential Transparency:
+      The property of a function or block construct such that it
+      will produce the same value every time it is called with
+      the same arguments.  Mathematical functions are
+      referentially transparent, by definition, but functions
+      whose results depend on global state, external context, or
+      local mutable values are -referentially opaque-.
+
+  Shared-key Encryption:
+      See Symmetrical Encryption.
+
+  Structured Text Database:
+      A text file that is used to encode multiple records of
+      data, each record composed of the same fields.  Records and
+      fields are also often called rows and columns,
+      respectively.  A structured text database might be any
+      textual format that contains little or no explicit markup;
+      the most common variants are delimited files and
+      fixed-width files, both widely used on mainframes and
+      elsewhere.  Most of the time, structured text databases
+      are line oriented, with one conceptual record per line; but
+      at times, devices like indentation are used to indicate
+      dependent subrecords.
+
+  Symmetrical Encryption:
+      Encryption using a single "key" that must be shared between
+      parties.  See Section 2.2.4 for a discussion of
+      cryptographic capabilities.
+

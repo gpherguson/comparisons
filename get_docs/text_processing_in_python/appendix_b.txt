@@ -1,0 +1,681 @@
+APPENDIX -- A DATA COMPRESSION PRIMER
+-------------------------------------------------------------------
+
+SECTION -- Introduction
+-------------------------------------------------------------------
+
+  See Section 2.2.5 for details on compression capabilities
+  included in the Python standard library. This appendix is
+  intended to provide readers who are unfamiliar with data
+  compression a basic background on its techniques and theory. The
+  final section of this appendix provides a practical
+  example--accompanied by some demonstration code--of a
+  Huffman-inspired custom encoding.
+
+  Data compression is widely used in a variety of programming
+  contexts.  All popular operating systems and programming
+  languages have numerous tools and libraries for dealing with
+  data compression of various sorts.  The right choice of
+  compression tools and libraries for a particular application
+  depends on the characteristics of the data and application in
+  question:  streaming versus file; expected patterns and
+  regularities in the data; relative importance of CPU usage,
+  memory usage, channel demands, and storage requirements; and
+  other factors.
+
+  Just what is data compression, anyway?  The short answer is
+  that data compression removes -redundancy- from data; in
+  information-theoretic terms, compression increases the
+  -entropy- of the compressed text.  But those statements are
+  essentially just true by definition.  Redundancy can come in a
+  lot of different forms.  Repeated bit sequences ('11111111')
+  are one type.  Repeated byte sequences are another
+  ('XXXXXXXX').  But more often redundancies tend to come on a
+  larger scale, either regularities of the data set taken as a
+  whole, or sequences of varying lengths that are relatively
+  common.  Basically, what data compression aims at is finding
+  algorithmic transformations of data representations that will
+  produce more compact representations given "typical" data sets.
+  If this description seems a bit complex to unpack, read on to
+  find some more practical illustrations.
+
+SECTION -- Lossless and Lossy Compression
+-------------------------------------------------------------------
+
+  There are actually two fundamentally different "styles" of data
+  compression: lossless and lossy. This appendix is generally about
+  lossless compression techniques, but the reader would be served
+  to understand the distinction first. Lossless compression
+  involves a transformation of the representation of a data set
+  such that it is possible to reproduce -exactly- the original data
+  set by performing a decompression transformation. Lossy
+  compression is a representation that allows you to reproduce
+  something "pretty much like" the original data set. As a plus for
+  the lossy techniques, they can frequently produce far more
+  compact data representations than lossless compression techniques
+  can. Most often lossy compression techniques are used for images,
+  sound files, and video. Lossy compression may be appropriate in
+  these areas insofar as human observers do not perceive the
+  literal bit-pattern of a digital image/sound, but rather more
+  general "gestalt" features of the underlying image/sound.
+
+  From the point of view of "normal" data, lossy compression is
+  not an option.  We do not want a program that does "about the
+  same" thing as the one we wrote.  We do not want a database
+  that contains "about the same" kind of information as what we
+  put into it.  At least not for most purposes (and the writer
+  knows of few practical uses of lossy compression outside of
+  what are already approximate mimetic representations of the
+  real world, likes images and sounds).
+
+SECTION -- A Data Set Example
+-------------------------------------------------------------------
+
+  For purposes of this appendix, let us start with a specific
+  hypothetical data representation.  Here is an
+  easy-to-understand example.  In the town of Greenfield, MA, the
+  telephone prefixes are '772-', '773-', and '774-'.  (For non-USA
+  readers:  In the USA, local telephone numbers are seven digits
+  and are conventionally represented in the form ###-####; prefixes
+  are assigned in geographic blocks.)  Suppose also that the
+  first prefix is the mostly widely assigned of the three.  The
+  suffix portions might be any other digits, in fairly equal
+  distribution.  The data set we are interested in is "the list
+  of all the telephone numbers currently in active use."  One can
+  imagine various reasons why this might be interesting for
+  programmatic purposes, but we need not specify that herein.
+
+  Initially, the data set we are interested in comes in a
+  particular data representation:  a multicolumn report (perhaps
+  generated as output of some query or compilation process).  The
+  first few lines of this report might look like:
+
+      #*----------- Telephone Number Report ----------------------#
+      =============================================================
+      772-7628     772-8601     772-0113     773-3429     774-9833
+      773-4319     774-3920     772-0893     772-9934     773-8923
+      773-1134     772-4930     772-9390     774-9992     772-2314
+      [...]
+
+SECTION -- Whitespace Compression
+-------------------------------------------------------------------
+
+  Whitespace compression can be characterized most generally as
+  "removing what we are not interested in."  Even though this
+  technique is technically a lossy-compression technique, it is
+  still useful for many types of data representations we find in
+  the real world.  For example, even though HTML is far more
+  readable in a text editor if indentation and vertical spacing
+  is added, none of this "whitespace" should make any difference
+  to how the HTML document is rendered by a Web browser.  If you
+  happen to know that an HTML document is destined only for a
+  Web browser (or for a robot/spider) then it might be a good
+  idea to take out all the whitespace to make it transmit faster
+  and occupy less space in storage.  What we remove in whitespace
+  compression never really had any functional purpose to start
+  with.
+
+  In the case of our example in this article, it is possible to
+  remove quite a bit from the described report. The row of "="
+  across the top adds nothing functional, nor do the "-" within
+  numbers, nor the spaces between them. These are all useful for a
+  person reading the original report, but do not matter once we
+  think of it as data. What we remove is not precisely whitespace
+  in traditional terms, but the intent is the same.
+
+  Whitespace compression is extremely "cheap" to perform.  It is
+  just a matter of reading a stream of data and excluding a few
+  specific values from the output stream.  In many cases, no
+  "decompression" step is involved at all.  But even where we
+  would wish to re-create something close to the original
+  somewhere down the data stream, it should require little in
+  terms of CPU or memory.  What we reproduce may or may not be
+  exactly what we started with, depending on just what rules and
+  constraints were involved in the original.  An HTML page typed
+  by a human in a text editor will probably have spacing that is
+  idiosyncratic.  Then again, automated tools often produce
+  "reasonable" indentation and spacing of HTML.  In the case of
+  the rigid report format in our example, there is no reason that
+  the original representation could not be precisely produced by
+  a "decompressing formatter" down the data stream.
+
+SECTION -- Run-Length Encoding
+-------------------------------------------------------------------
+
+  Run-length encoding (RLE) is the simplest widely used
+  lossless-compression technique. Like whitespace compression, it
+  is "cheap"--especially to decode. The idea behind it is that many
+  data representations consist largely of strings of repeated
+  bytes. Our example report is one such data representation. It
+  begins with a string of repeated "=", and has strings of spaces
+  scattered through it. Rather than represent each character with
+  its own byte, RLE will (sometimes or always) have an iteration
+  count followed by the character to be repeated.
+
+  If repeated bytes are predominant within the expected data
+  representation, it might be adequate and efficient to always have
+  the algorithm specify one or more bytes of iteration count,
+  followed by one character. However, if one-length character
+  strings occur, these strings will require two (or more) bytes to
+  encode them, that is, '00000001 01011000' might be the output
+  bit stream required for just one ASCII "X" of the input stream.
+  Then again, a hundred "X" in a row would be output as '01100100
+  01011000', which is quite good.
+
+  What is frequently done in RLE variants is to selectively use
+  bytes to indicate iterator counts and otherwise just have bytes
+  represent themselves. At least one byte-value has to be reserved
+  to do this, but that can be escaped in the output, if needed. For
+  example, in our example telephone-number report, we know that
+  everything in the input stream is plain ASCII characters.
+  Specifically, they all have bit one of their ASCII value as 0. We
+  could use this first ASCII bit to indicate that an iterator count
+  was being represented rather than representing a regular
+  character. The next seven bits of the iterator byte could be used
+  for the iterator count, and the next byte could represent the
+  character to be repeated. So, for example, we could represent the
+  string "YXXXXXXXX" as:
+
+      #*----- Run length encoding example -----#
+      "Y"      Iter(8)  "X"
+      01001111 10001000 01011000
+
+  This example does not show how to escape iterator byte-values,
+  nor does it allow iteration of more than 127 occurrences of a
+  character.  Variations on RLE deal with issues such as these,
+  if needed.
+
+SECTION -- Huffman Encoding
+-------------------------------------------------------------------
+
+  Huffman encoding looks at the symbol table of a whole data set.
+  The compression is achieved by finding the "weights" of each
+  symbol in the data set. Some symbols occur more frequently than
+  others, so Huffman encoding suggests that the frequent symbols
+  need not be encoded using as many bits as the less-frequent
+  symbols. There are variations on Huffman-style encoding, but the
+  original (and frequent) variation involves looking for the most
+  common symbol and encoding it using just one bit, say 1. If you
+  encounter a 0, you know you're on the way to encoding a longer
+  variable length symbol.
+
+  Let's imagine we apply Huffman encoding to our local phone-book
+  example (assume we have already whitespace-compressed the
+  report). We might get:
+
+      #*----- Huffman encoding example -----#
+      Encoding   Symbol
+       1           7
+       010         2
+       011         3
+       00000       4
+       00001       5
+       00010       6
+       00011       8
+       00100       9
+       00101       0
+       00111       1
+
+  Our initial symbol set of digits could already be
+  straightforwardly encoded (with no-compression) as 4-bit
+  sequences (nibbles).  The Huffman encoding given will use up to
+  5-bits for the worst-case symbols, which is obviously worse
+  than the nibble encoding.  However, our best case will use only
+  -1- bit, and we know that our best case is also the most
+  frequent case, by having scanned the data set.  So we might
+  encode a particular phone number like:
+
+      #*----- Huffman translation example -----#
+      772 7628 --> 1 1 010 1 00010 010 00011
+
+  The nibble encoding would take 28-bits to represent a phone
+  number; in this particular case, our encoding takes 19-bits. I
+  introduced spaces into the example above for clarity; you can see
+  that they are not necessary to unpack the encoding, since the
+  encoding table will determine whether we have reached the end of
+  an encoded symbol (but you have to keep track of your place in
+  the bits).
+
+  Huffman encoding is still fairly cheap to decode, cycle-wise. But
+  it requires a table lookup, so it cannot be quite as cheap as
+  RLE, however. The encoding side of Huffman is fairly expensive,
+  though; the whole data set has to be scanned and a frequency
+  table built up. In some cases a "shortcut" is appropriate with
+  Huffman coding. Standard Huffman coding applies to a particular
+  data set being encoded, with the set-specific symbol table
+  prepended to the output data stream. However, if the whole type
+  of data encoded--not just the single data set--has the same
+  regularities, we can opt for a global Huffman table. If we have
+  such a global Huffman table, we can hard-code the lookups into
+  our executables, which makes both compression and decompression
+  quite a bit cheaper (except for the initial global sampling and
+  hard-coding). For example, if we know our data set would be
+  English-language prose, letter-frequency tables are well known
+  and quite consistent across data sets.
+
+SECTION -- Lempel-Ziv Compression
+-------------------------------------------------------------------
+
+  Probably the most significant lossless-compression technique is
+  Lempel-Ziv. What is explained here is "LZ78," but LZ77 and other
+  variants work in a similar fashion. The idea in LZ78 is to encode
+  a streaming byte sequence using a dynamic table. At the start of
+  compressing a bit stream, the LZ table is filled with the actual
+  symbol set, along with some blank slots. Various size tables are
+  used, but for our (whitespace-compressed) telephone number
+  example above, let's suppose that we use a 32-entry table (this
+  should be OK for our example, although much too small for most
+  other types of data). First thing, we fill the first ten slots
+  with our alphabet (digits). As new bytes come in, we first output
+  an existing entry that grabs the longest sequence possible, then
+  fill the next available slot with the N+1 length sequence. In the
+  worst case, we are using 5-bits instead of 4-bits for a single
+  symbol, but we'll wind up getting to use 5-bits for multiple
+  symbols in a lot of cases. For example, the machine might do this
+  (a table slot is noted with square brackets):
+
+      #*----------- LZ77 Algorithm --------------#
+      7 --> Lookup: 7 found       --> nothing to add    --> keep looking
+      7 --> Lookup: 77 not found  --> add '77' to [11]  --> output [7]=00111
+      2 --> Lookup: 72 not found  --> add '72' to [12]  --> output [7]=00111
+      7 --> Lookup: 27 not found  --> add '27' to [13]  --> output [2]=00010
+      6 --> Lookup: 76 not found  --> add '76' to [14]  --> output [7]=00111
+      2 --> Lookup: 62 not found  --> add '62' to [15]  --> output [6]=00110
+      8 --> Lookup: 28 not found  --> add '28' to [16]  --> output [2]=00010
+
+  So far, we've got nothing out of it, but let's continue with
+  the next phone number:
+
+      #*----------- LZ77 Algorithm (cont) -------#
+      7 --> Lookup: 87 not found  --> add '87' to [17]  --> output [8]=00100
+      7 --> Lookup: 77 found      --> nothing to add    --> keep looking
+      2 --> Lookup: 772 not found --> add '772' to [18] --> output [11]=01011
+      8 --> Lookup: 28 found      --> nothing to add    --> keep looking
+      6 --> Lookup: 286 not found --> add '286' to [19] --> output [16]=10000
+      ...
+
+  The steps should suffice to see the pattern. We have not achieved
+  any net compression yet, but notice that we've already managed to
+  use slot 11 and slot 16, thereby getting two symbols with one
+  output in each case. We've also accumulated the very useful byte
+  sequence '772' in slot 18, which would prove useful later in the
+  stream.
+
+  What LZ78 does is fill up one symbol table with (hopefully)
+  helpful entries, then write it, clear it, and start a new one. In
+  this regard, 32 entries is still probably too small a symbol
+  table, since that will get cleared before a lot of reuse of '772'
+  and the like is achieved. But the small symbol table is easy to
+  illustrate.
+
+  In typical data sets, Lempel-Ziv variants achieve much better
+  compression rates than Huffman or RLE. On the other hand,
+  Lempel-Ziv variants are very pricey cycle-wise and can use large
+  tables in memory. Most real-life compression tools and libraries
+  use a combination of Lempel-Ziv and Huffman techniques.
+
+SECTION -- Solving the Right Problem
+-------------------------------------------------------------------
+
+  Just as choosing the right algorithm can often create
+  orders-of-magnitude improvements over even heavily optimized
+  wrong algorithms, choosing the right data representation is often
+  even more important than compression methods (which are always a
+  sort of post hoc optimization of desired features). The simple
+  data set example used in this appendix is a perfect case where
+  reconceptualizing the problem would actually be a much better
+  approach than using -any- of the compression techniques
+  illustrated.
+
+  Think again about what our data represents.  It is not a very
+  general collection of data, and the rigid a priori constraints
+  allow us to reformulate our whole problem.  What we have is a
+  maximum of 30,000 telephone numbers (7720000 through 7749999),
+  some of which are active, and others of which are not.  We do
+  not have a "duty," as it were, to produce a full representation
+  of each telephone number that is active, but simply to indicate
+  the binary fact that it -is- active.  Thinking of the problem
+  this way, we can simply allocate 30,000 bits of memory and
+  storage, and have each bit say "yes" or "no" to the presence of
+  one telephone number.  The ordering of the bits in the
+  bit-array can be simple ascending order from the lowest to the
+  highest telephone number in the range.
+
+  This bit-array solution is the best in almost every respect.
+  It allocates exactly 3750 bytes to represent the data set; the
+  various compression techniques will use a varying amount of
+  storage depending both on the number of telephone numbers in
+  the set and the efficiency of the compression.  But if 10,000
+  of the 30,000 possible telephone numbers are active, and even a
+  very efficient compression technique requires several bytes per
+  telephone number, then the bit-array is an order-of-magnitude
+  better.  In terms of CPU demands, the bit-array is not only
+  better than any of the discussed compression methods, it is
+  also quite likely to be better than the naive noncompression
+  method of listing all the numbers as strings.  Stepping through
+  a bit-array and incrementing a "current-telephone-number"
+  counter can be done quite efficiently and mostly within the
+  on-chip cache of a modern CPU.
+
+  The lesson to be learned from this very simple example is
+  certainly not that every problem has some magic shortcut (like
+  this one does). A lot of problems genuinely require significant
+  memory, bandwidth, storage, and CPU resources, and in many of
+  those cases compression techniques can help ease--or shift--those
+  burdens. But a more moderate lesson could be suggested: Before
+  compression techniques are employed, it is a good idea to make
+  sure that one's starting conceptualization of the data
+  representation is a good one.
+
+
+SECTION -- A Custom Text Compressor
+-------------------------------------------------------------------
+
+  Most styles of compression require a decompression pass before
+  one is able to do something useful with a source document. Many
+  (de)compressors can operate as a stream, producing only the
+  needed bytes of a compressed or decompressed stream in sequence.
+  In some cases, formats even insert recovery or bookkeeping bytes
+  that allow streams to begin within documents (rather than from
+  the very beginning). Programmatic wrappers can make compressed
+  documents or strings look like plaintext ones at the appropriate
+  API layer. Nonetheless, even streaming decompressors require a
+  computational overhead to get at the plaintext content of a
+  compressed document.
+
+  An excellent example of a streaming (de)compressor with an API
+  wrapper is `gzip.GzipFile()`. Although not entirely transparent,
+  you can compress and decompress documents without any explicit
+  call to a (de)compression function using this wrapper.
+  `gzip.GzipFile()` provides a file-like interface, but it is also
+  easy to operate on a purely in-memory file using the support of
+  `cStringIO.StringIO()`. For example:
+
+      >>> from gzip import GzipFile
+      >>> from cStringIO import StringIO
+      >>> sio = StringIO()
+      >>> writer = GzipFile(None, 'wb', 9, sio)
+      >>> writer.write('Mary had a little lamb\n')
+      >>> writer.write('its fleece as white as snow\n')
+      >>> writer.close()
+      >>> sio.getvalue()[:20]
+      '\x1f\x8b\x08\x00k\xc1\x9c<\x02\xff'
+      >>> reader = GzipFile(None, 'rb', 9, StringIO(sio.getvalue()))
+      >>> reader.read()[:20]
+      'Mary had a little la'
+      >>> reader.seek(30)
+      >>> reader.read()
+      'ece as white as snow\n'
+
+  One thing this example shows is that the underlying compressed
+  string is more or less gibberish. Although the file-like API
+  hides the details from an application programmer, the
+  decompression process is also stateful in its dependence on a
+  symbol table built from the byte sequence in the compressed text.
+  You cannot expect to make sense of a few bytes in the middle of
+  the compressed text without a knowledge of the prior context.
+
+  A different approach to compression can have significant
+  advantages in operating on natural-language textual sources. A
+  group of researchers in Brazil and Chile have examined techniques
+  for "word-based Huffman compression." The general strategy of
+  these researchers is to treat whole words as the symbol set for a
+  Huffman table, rather than merely naive byte values. In natural
+  languages, a limited number of (various length, multibyte) words
+  occur with a high frequency, and savings result if such words are
+  represented with shorter byte sequences. In general, such reduced
+  representation is common to all compression techniques, but
+  word-based Huffman takes the additional step of retaining byte
+  boundaries (and uses fixed symbol mapping, as with other Huffman
+  variants).
+
+  A special quality of word-based Huffman compressed text is that
+  it need not undergo decompression to be searched. This quality
+  makes it convenient to store textual documents in compressed
+  form, without incurring the requirement to decompress them before
+  they are useful. Instead, if one is searching for words directly
+  contained in the symbol table, one can merely precompress the
+  search terms, then use standard searching algorithms. Such a
+  search can be either against an in-memory string or against a
+  file-like source; in general a search against a precompressed
+  target will be -faster- than one against an uncompressed text. In
+  code, one would use snippets similar to:
+
+      #*------------- Word-based Huffman compression ----------#
+      small_text = word_Huffman_compress(big_text)
+      search_term = "Foobar"
+      coded_term = word_Huffman_compress(search_term)
+      offset = small_text.find(coded_term)
+      coded_context = small_text[offset-10:offset+10+len(search_term)]
+      plain_context = word_Huffman_expand(coded_context)
+
+  A sophisticated implementation of word-based Huffman compression
+  can obtain better compression sizes than does `zlib`. For
+  simplicity, the module below sacrifices optimal compression to
+  the goal of clarity and brevity of code. A fleshed-out
+  implementation could add a number of features.
+
+  The presented module [word_huffman] uses a fixed number of bytes
+  to encode each word in the symbol table. This number of bytes can
+  be selected to be 1, 2, or 3 (thereby limiting the table to a
+  generous 2 million entries). The module also separates the
+  generation of a symbol table from the actual
+  compression/decompression. The module can be used in a context
+  where various documents get encoded using the same symbol
+  table--the table presumably generated based on a set of canonical
+  documents. In this situation, the computational requirement of
+  symbol table generation can happen just once, and the symbol
+  table itself need not be transmitted along with each compressed
+  document. Of course, nothing prevents you from treating the
+  document being processed currently as said canonical statistical
+  word source (thereby somewhat improving compression).
+
+  In the algorithm utilized by [word_huffman], only high-bit
+  bytes are utilized in the symbol table.  The lower 128 ASCII
+  characters represent themselves as literals.  Any ASCII
+  character sequence that is not in the symbol table is
+  represented as itself--including any short words that would not
+  benefit from encoding.  Any high-bit characters that occur in the
+  original source text are escaped by being preceded by
+  an 0xFF byte.  As a result, high-bit characters are encoded
+  using two bytes; this technique is clearly only useful for
+  encoding (mostly) textual files, not binary files.  Moreover,
+  only character values 0x80-0xFE are used by the symbol table
+  (0xFF -always- signals a literal high-bit character in the
+  encoding).
+
+  The [word_huffman] algorithm is not entirely stateless in the
+  sense that not every subsequence in a compressed text can be
+  expanded without additional context. But very little context is
+  required. Any low-bit character always literally represents
+  itself. A high-bit character, however, might be either an escaped
+  literal, a first byte of a symbol table entry, or a non-first
+  byte of a symbol table entry. In the worst case, where a 3-byte
+  symbol table is used, it is necessary to look back two bytes from
+  an arbitrary position in the text to determine the full context.
+  Normally, only one byte lookback is necessary. In any case, words
+  in the symbol table are separated from each other in the
+  uncompressed text by nonalpha low-bit characters (usually
+  whitespace), so parsing compressed entries is straightforward.
+
+      #---------- word_huffman.py ----------#
+      wordchars = '-_ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
+      def normalize_text(txt):
+          "Convert non-word characters to spaces"
+          trans = [' '] * 256
+          for c in wordchars: trans[ord(c)] = c
+          return txt.translate(''.join(trans))
+
+      def build_histogram(txt, hist={}):
+          "Incrementally build a histogram table from text source(s)"
+          for word in txt.split():
+              hist[word] = hist.get(word, 0)+1
+          return hist
+
+      def optimal_Nbyte(hist, entrylen=2):
+          "Build optimal word list for nominal symbol table byte-length"
+          slots = 127**entrylen
+          words = []
+          for word, count in hist.items():
+              gain = count * (len(word)-entrylen)
+              if gain > 0: words.append((gain, word))
+          words.sort()
+          words.reverse()
+          return [w[1] for w in words[:slots]]
+
+      def tables_from_words(words):
+          "Create symbol tables for compression and expansion"
+          # Determine ACTUAL best symbol table byte length
+          if len(words) < 128: entrylen = 1
+          elif len(words) <= 16129: entrylen = 2
+          else: entrylen = 3 # assume < ~2M distinct words
+          comp_table = {}
+          # Escape hibit characters
+          for hibit_char in map(chr, range(128,256)):
+              comp_table[hibit_char] = chr(255)+hibit_char
+          # Literal low-bit characters
+          for lowbit_char in map(chr, range(128)):
+              comp_table[lowbit_char] = lowbit_char
+          # Add word entries
+          for word, index in zip(words, range(len(words))):
+              comp_table[word] = symbol(index, entrylen)
+          # Reverse dictionary for expansion table
+          exp_table = {}
+          for key, val in comp_table.items():
+              exp_table[val] = key
+          return (comp_table, exp_table, entrylen)
+
+      def symbol(index, entrylen):
+          "Determine actual symbol from word sequence and symbol length"
+          if entrylen == 1:
+              return chr(128+index)
+          if entrylen == 2:
+              byte1, byte2 = divmod(index, 128)
+              return chr(128+byte1)+chr(128+byte2)
+          if entrylen == 3:
+              byte1, rem = divmod(index, 16129)
+              byte2, byte3 = divmod(rem, 128)
+              return chr(128+byte1)+chr(128+byte2)+chr(128+byte3)
+          raise ValueError, "symbol byte len must be 1 <= S <=3: "+`entrylen`
+
+      def word_Huffman_compress(text, comp_table):
+          "Compress text based on word-to-symbol table"
+          comp_text = []
+          maybe_entry = []
+          for c in text+chr(0):   # force flush of final word
+              if c in wordchars:
+                  maybe_entry.append(c)
+              else:
+                  word = ''.join(maybe_entry)
+                  comp_text.append(comp_table.get(word, word))
+                  maybe_entry = []
+                  comp_text.append(comp_table[c])
+          return ''.join(comp_text[:-1])
+
+      def word_Huffman_expand(text, exp_table, entrylen):
+          "Expand text based on symbol-to-word table"
+          exp_text = []
+          offset = 0
+          end = len(text)
+          while offset < end:
+              c = text[offset]
+              if ord(c) == 255:   # escaped highbit character
+                  exp_text.append(text[offset+1])
+                  offset += 2
+              elif ord(c) >= 128: # symbol table entry
+                  symbol = text[offset:offset+entrylen]
+                  exp_text.append(exp_table[symbol])
+                  offset += entrylen
+              else:
+                  exp_text.append(c)
+                  offset += 1
+          return ''.join(exp_text)
+
+      def Huffman_find(pat, comp_text, comp_table):
+          "Find a (plaintext) substring in compressed text"
+          comp_pat = word_Huffman_compress(pat, comp_table)
+          return comp_text.find(comp_pat)
+
+      if __name__=='__main__':
+          import sys, glob
+          big_text = []
+          for fpat in sys.argv[1:]:
+              for fname in glob.glob(fpat):
+                  big_text.append(open(fname).read())
+          big_text = ''.join(big_text)
+          hist = build_histogram(normalize_text(big_text))
+          for entrylen in (1, 2, 3):
+              comp_words = optimal_Nbyte(hist, entrylen)
+              comp_table, exp_table, entrylen_ = tables_from_words(comp_words)
+              comp_text = word_Huffman_compress(big_text, comp_table)
+              exp_text = word_Huffman_expand(comp_text, exp_table, entrylen_)
+              print "Nominal/actual symbol length (entries): %i/%i (%i)" % \
+                    (entrylen, entrylen_, len(comp_words))
+              print "Compression ratio: %i%%" % \
+                    ((100*len(comp_text))/len(big_text))
+              if big_text == exp_text:
+                  print "*** Compression/expansion cycle successful!\n"
+              else:
+                  print "*** Failure in compression/expansion cycle!\n"
+              # Just for fun, here's a search against compressed text
+              pos = Huffman_find('Foobar', comp_text, comp_table)
+
+  The [word_huffman] module, while simple and fairly short, is
+  still likely to be useful--and it lays the basis for a
+  fleshed-out variant. The compression obtained by the algorithm
+  above is a comparatively modest 50-60 percent of the size of the
+  original text (in informal tests). But given that locality of
+  decompression of subsegments is both possible and cheap, there is
+  nearly no disadvantage to this transformation for stored
+  documents. Word searches become quicker basically in direct
+  proportion to the length reduction.
+
+  One likely improvement would be to add run-length compression of
+  whitespace (or generally of nonalpha characters); doing so would
+  lose none of the direct searchability that this algorithm is
+  designed around, and in typical electronic natural-language texts
+  would result in significant additional compression. Moreover, a
+  pleasant side effect of the [word_huffman] transformation is that
+  transformed documents become -more- compressible under
+  Lempel-Ziv-based techniques (i.e., cumulatively). In other words,
+  there is benefit in precompressing documents with [word-huffman]
+  if you intend to later compress them with 'gzip', 'zip', or
+  similar tools.
+
+  More aggressive improvements might be obtained by allowing
+  variable byte-length symbol table entries and/or by claiming some
+  additional low-bit control codes for the symbol table (and
+  escaping literals in the original text). You can experiment with
+  such variations, and your results might vary somewhat depending
+  upon the details of application-specific canonical texts.
+
+  Search capabilities might also be generalized--but this would
+  require considerably greater effort. In the referenced research
+  article below, the authors show how to generalize to direct
+  regular-expression searching against word-based Huffman encoded
+  texts. The [word_huffman] implementation allows certain
+  straightforward transformations of regular expressions (where
+  literal words occur within them) for searching against compressed
+  documents, but a number of caveats and restrictions apply.
+  Overcoming most such limitations would involve digging into
+  Python's underlying regular expression engine, but it is possible
+  in principle.
+
+
+SECTION -- References
+-------------------------------------------------------------------
+
+  A good place to turn for additional theoretical and practical
+  information on compression is at the '<comp.compression>' FAQ:
+
+    <http://www.cis.ohio-state.edu/hypertext/faq/usenet/compression-faq/>.
+
+  A research article on word-based Huffman encoding inspired my
+  simple example of word-based compression.  The article "Fast
+  and Flexible Word Searching on Compressed Text," by Edleno
+  Silva de Moura, Gonzalo Navarro, Nivio Ziviani, and Ricardo
+  Baeza-Yates, can be found at:
+
+    <http://citeseer.nj.nec.com/silvademoura00fast.html>.
+

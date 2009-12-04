@@ -1,0 +1,2835 @@
+CHAPTER III -- REGULAR EXPRESSIONS
+-------------------------------------------------------------------
+
+  Regular expressions allow extremely valuable text processing
+  techniques, but ones that warrant careful explanation. Python's
+  [re] module, in particular, allows numerous enhancements to basic
+  regular expressions (such as named backreferences, lookahead
+  assertions, backreference skipping, non-greedy quantifiers, and
+  others). A solid introduction to the subtleties of regular
+  expressions is valuable to programmers engaged in text processing
+  tasks.
+
+  The prequel of this chapter contains a tutorial on regular
+  expressions that allows a reader unfamiliar with regular
+  expressions to move quickly from simple to complex elements of
+  regular expression syntax. This tutorial is aimed primarily at
+  beginners, but programmers familiar with regular expressions in
+  other programming tools can benefit from a quick read of the
+  tutorial, which explicates the particular regular expression
+  dialect in Python.
+
+  It is important to note up-front that regular expressions,
+  while very powerful, also have limitations.  In brief, regular
+  expressions cannot match patterns that nest to arbitrary
+  depths.  If that statement does not make sense, read Chapter 4,
+  which discusses parsers--to a large extent, parsing exists to
+  address the limitations of regular expressions.  In general, if
+  you have doubts about whether a regular expression is
+  sufficient for your task, try to understand the examples in
+  Chapter 4, particularly the discussion of how you might spell a
+  floating point number.
+
+  Section 3.1 examines a number of text processing problems that
+  are solved most naturally using regular expression.  As in
+  other chapters, the solutions presented to problems can
+  generally be adopted directly as little utilities for performing
+  tasks.  However, as elsewhere, the larger goal in presenting
+  problems and solutions is to address a style of thinking about
+  a wider class of problems than those whose solutions are
+  presented directly in this book.  Readers who are interested
+  in a range of ready utilities and modules will probably want to
+  check additional resources on the Web, such as the Vaults of
+  Parnassus <http://www.vex.net/parnassus/> and the Python
+  Cookbook <http://aspn.activestate.com/ASPN/Python/Cookbook/>.
+
+  Section 3.2 is a "reference with commentary" on the Python
+  standard library modules for doing regular expression tasks.
+  Several utility modules and backward-compatibility regular
+  expression engines are available, but for most readers, the only
+  important module will be [re] itself. The discussions
+  interspersed with each module try to give some guidance on why
+  you would want to use a given module or function, and the
+  reference documentation tries to contain more examples of actual
+  typical usage than does a plain reference. In many cases, the
+  examples and discussion of individual functions address common
+  and productive design patterns in Python. The cross-references
+  are intended to contextualize a given function (or other thing)
+  in terms of related ones (and to help a reader decide which is
+  right for her). The actual listing of functions, constants,
+  classes, and the like are in alphabetical order within each
+  category.
+
+
+SECTION 0 -- A Regular Expression Tutorial
+------------------------------------------------------------------------
+
+    Some people, when confronted with a problem, think "I know,
+    I'll use regular expressions." Now they have two problems.
+     -- Jamie Zawinski, '<alt.religion.emacs>' (08/12/1997)
+
+  TOPIC -- Just What is a Regular Expression, Anyway?
+  --------------------------------------------------------------------
+
+  Many readers will have some background with regular
+  expressions, but some will not have any.  Those with
+  experience using regular expressions in other languages (or in
+  Python) can probably skip this tutorial section.  But readers
+  new to regular expressions (affectionately called 'regexes' by
+  users) should read this section; even some with experience can
+  benefit from a refresher.
+
+  A regular expression is a compact way of describing complex
+  patterns in texts. You can use them to search for patterns
+  and, once found, to modify the patterns in complex ways. They
+  can also be used to launch programmatic actions that depend on
+  patterns.
+
+  Jamie Zawinski's tongue-in-cheek comment in the epigram is
+  worth thinking about. Regular expressions are amazingly
+  powerful and deeply expressive. That is the very reason that
+  writing them is just as error-prone as writing any other
+  complex programming code. It is always better to solve a
+  genuinely simple problem in a simple way; when you go beyond
+  simple, think about regular expressions.
+
+  A large number of tools other than Python incorporate regular
+  expressions as part of their functionality. Unix-oriented
+  command-line tools like 'grep', 'sed', and 'awk' are mostly
+  wrappers for regular expression processing. Many text editors
+  allow search and/or replacement based on regular expressions.
+  Many programming languages, especially other scripting languages
+  such as Perl and TCL, build regular expressions into the heart of
+  the language. Even most command-line shells, such as Bash or the
+  Windows-console, allow restricted regular expressions as part of
+  their command syntax.
+
+  There are some variations in regular expression syntax between
+  different tools that use them, but for the most part regular
+  expressions are a "little language" that gets embedded inside
+  bigger languages like Python. The examples in this tutorial
+  section (and the documentation in the rest of the chapter) will
+  focus on Python syntax, but most of this chapter transfers
+  easily to working with other programming languages and tools.
+
+  As with most of this book, examples will be illustrated by use of
+  Python interactive shell sessions that readers can type
+  themselves, so that they can play with variations on the
+  examples. However, the [re] module has little reason to include a
+  function that simply illustrates matches in the shell. Therefore,
+  the availability of the small wrapper program below is implied in
+  the examples:
+
+      #---------- re_show.py ----------#
+      import re
+      def re_show(pat, s):
+          print re.compile(pat, re.M).sub("{\g<0>}", s.rstrip()),'\n'
+
+      s = '''Mary had a little lamb
+      And everywhere that Mary
+      went, the lamb was sure
+      to go'''
+
+  Place the code in an external module and 'import' it. Those
+  new to regular expressions need not worry about what the above
+  function does for now. It is enough to know that the first
+  argument to 're_show()' will be a regular expression pattern,
+  and the second argument will be a string to be matched against.
+  The matches will treat each line of the string as a separate
+  pattern for purposes of matching beginnings and ends of lines.
+  The illustrated matches will be whatever is contained between
+  curly braces (and is typographically marked for emphasis).
+
+  TOPIC -- Matching Patterns in Text: The Basics
+  --------------------------------------------------------------------
+
+  The very simplest pattern matched by a regular expression is a
+  literal character or a sequence of literal characters. Anything
+  in the target text that consists of exactly those characters in
+  exactly the order listed will match. A lowercase character is not
+  identical with its uppercase version, and vice versa. A space in
+  a regular expression, by the way, matches a literal space in the
+  target (this is unlike most programming languages or command-line
+  tools, where a variable number of spaces separate keywords).
+
+      >>> from re_show import re_show, s
+      >>> re_show('a', s)
+      M{a}ry h{a}d {a} little l{a}mb.
+      And everywhere th{a}t M{a}ry
+      went, the l{a}mb w{a}s sure
+      to go.
+
+      >>> re_show('Mary', s)
+      {Mary} had a little lamb.
+      And everywhere that {Mary}
+      went, the lamb was sure
+      to go.
+
+  -*-
+
+  A number of characters have special meanings to regular
+  expressions. A symbol with a special meaning can be matched,
+  but to do so it must be prefixed with the backslash character
+  (this includes the backslash character itself:  to match one
+  backslash in the target, the regular expression should include
+  '\\'). In Python, a special way of quoting a string is
+  available that will not perform string interpolation. Since
+  regular expressions use many of the same backslash-prefixed
+  codes as do Python strings, it is usually easier to compose
+  regular expression strings by quoting them as "raw strings"
+  with an initial "r".
+
+      >>> from re_show import re_show
+      >>> s = '''Special characters must be escaped.*'''
+      >>> re_show(r'.*', s)
+      {Special characters must be escaped.*}
+
+      >>> re_show(r'\.\*', s)
+      Special characters must be escaped{.*}
+
+      >>> re_show('\\\\', r'Python \ escaped \ pattern')
+      Python {\} escaped {\} pattern
+
+      >>> re_show(r'\\', r'Regex \ escaped \ pattern')
+      Regex {\} escaped {\} pattern
+
+  -*-
+
+  Two special characters are used to mark the beginning and end
+  of a line:  caret ("^") and dollarsign ("$"). To match a caret
+  or dollarsign as a literal character, it must be escaped (i.e.,
+  precede it by a backslash "\").
+
+  An interesting thing about the caret and dollarsign is that
+  they match zero-width patterns. That is, the length of the
+  string matched by a caret or dollarsign by itself is zero (but
+  the rest of the regular expression can still depend on the
+  zero-width match). Many regular expression tools provide
+  another zero-width pattern for word-boundary ("\b"). Words
+  might be divided by whitespace like spaces, tabs, newlines, or
+  other characters like nulls; the word-boundary pattern matches
+  the actual point where a word starts or ends, not the
+  particular whitespace characters.
+
+      >>> from re_show import re_show, s
+      >>> re_show(r'^Mary', s)
+      {Mary} had a little lamb
+      And everywhere that Mary
+      went, the lamb was sure
+      to go
+
+      >>> re_show(r'Mary$', s)
+      Mary had a little lamb
+      And everywhere that {Mary}
+      went, the lamb was sure
+      to go
+
+      >>> re_show(r'$','Mary had a little lamb')
+      Mary had a little lamb{}
+
+  -*-
+
+  In regular expressions, a period can stand for any character.
+  Normally, the newline character is not included, but optional
+  switches can force inclusion of the newline character also (see
+  later documentation of [re] module functions). Using a period
+  in a pattern is a way of requiring that "something" occurs
+  here, without having to decide what.
+
+  Readers who are familiar with DOS command-line wildcards will
+  know the question mark as filling the role of "some character"
+  in command masks. But in regular expressions, the
+  question mark has a different meaning, and the period is used
+  as a wildcard.
+
+      >>> from re_show import re_show, s
+      >>> re_show(r'.a', s)
+      {Ma}ry {ha}d{ a} little {la}mb
+      And everywhere t{ha}t {Ma}ry
+      went, the {la}mb {wa}s sure
+      to go
+
+  -*-
+
+  A regular expression can have literal characters in it and also
+  zero-width positional patterns. Each literal character or positional
+  pattern is an atom in a regular expression. One may also group
+  several atoms together into a small regular expression that is
+  part of a larger regular expression. One might be inclined to
+  call such a grouping a "molecule," but normally it is also
+  called an atom.
+
+  In older Unix-oriented tools like grep, subexpressions must be
+  grouped with escaped parentheses, for example, '\(Mary\)'. In
+  Python (as with most more recent tools), grouping is done with
+  bare parentheses, but matching a literal parenthesis requires
+  escaping it in the pattern.
+
+      >>> from re_show import re_show, s
+      >>> re_show(r'(Mary)( )(had)', s)
+      {Mary had} a little lamb
+      And everywhere that Mary
+      went, the lamb was sure
+      to go
+
+      >>> re_show(r'\(.*\)', 'spam (and eggs)')
+      spam {(and eggs)}
+
+  -*-
+
+  Rather than name only a single character, a pattern in a
+  regular expression can match any of a set of characters.
+
+  A set of characters can be given as a simple list inside square
+  brackets, for example, '[aeiou]' will match any single lowercase
+  vowel. For letter or number ranges it may also have the first and
+  last letter of a range, with a dash in the middle; for example,
+  '[A-Ma-m]' will match any lowercase or uppercase letter in the
+  first half of the alphabet.
+
+  Python (as with many tools) provides escape-style shortcuts to
+  the most commonly used character class, such as '\s' for a
+  whitespace character and '\d' for a digit. One could always
+  define these character classes with square brackets, but the
+  shortcuts can make regular expressions more compact and more
+  readable.
+
+      >>> from re_show import re_show, s
+      >>> re_show(r'[a-z]a', s)
+      Mary {ha}d a little {la}mb
+      And everywhere t{ha}t Mary
+      went, the {la}mb {wa}s sure
+      to go
+
+  -*-
+
+  The caret symbol can actually have two different meanings in regular
+  expressions. Most of the time, it means to match the zero-length
+  pattern for line beginnings. But if it is used at the beginning of a
+  character class, it reverses the meaning of the character class.
+  Everything not included in the listed character set is matched.
+
+      >>> from re_show import re_show, s
+      >>> re_show(r'[^a-z]a', s)
+      {Ma}ry had{ a} little lamb
+      And everywhere that {Ma}ry
+      went, the lamb was sure
+      to go
+
+  -*-
+
+  Using character classes is a way of indicating that either one
+  thing or another thing can occur in a particular spot. But
+  what if you want to specify that either of two whole
+  subexpressions occur in a position in the regular expression?
+  For that, you use the alternation operator, the vertical bar
+  ("|"). This is the symbol that is also used to indicate a pipe
+  in Unix/DOS shells and is sometimes called the pipe character.
+
+  The pipe character in a regular expression indicates an
+  alternation between everything in the group enclosing it. What
+  this means is that even if there are several groups to the left
+  and right of a pipe character, the alternation greedily asks
+  for everything on both sides. To select the scope of the
+  alternation, you must define a group that encompasses the
+  patterns that may match. The example illustrates this:
+
+      >>> from re_show import re_show
+      >>> s2 = 'The pet store sold cats, dogs, and birds.'
+      >>> re_show(r'cat|dog|bird', s2)
+      The pet store sold {cat}s, {dog}s, and {bird}s.
+
+      >>> s3 = '=first first= # =second second= # =first= # =second='
+      >>> re_show(r'=first|second=', s3)
+      {=first} first= # =second {second=} # {=first}= # ={second=}
+
+      >>> re_show(r'(=)(first)|(second)(=)', s3)
+      {=first} first= # =second {second=} # {=first}= # ={second=}
+
+      >>> re_show(r'=(first|second)=', s3)
+      =first first= # =second second= # {=first=} # {=second=}
+
+  -*-
+
+  One of the most powerful and common things you can do with
+  regular expressions is to specify how many times an atom occurs
+  in a complete regular expression. Sometimes you want to
+  specify something about the occurrence of a single character,
+  but very often you are interested in specifying the occurrence
+  of a character class or a grouped subexpression.
+
+  There is only one quantifier included with "basic" regular
+  expression syntax, the asterisk ("*"); in English this has the
+  meaning "some or none" or "zero or more."  If you want to
+  specify that any number of an atom may occur as part of a
+  pattern, follow the atom by an asterisk.
+
+  Without quantifiers, grouping expressions doesn't really serve
+  as much purpose, but once we can add a quantifier to a
+  subexpression we can say something about the occurrence of the
+  subexpression as a whole. Take a look at the example:
+
+      >>> from re_show import re_show
+      >>> s = '''Match with zero in the middle: @@
+      ... Subexpression occurs, but...: @=!=ABC@
+      ... Lots of occurrences: @=!==!==!==!==!=@
+      ... Must repeat entire pattern: @=!==!=!==!=@'''
+      >>> re_show(r'@(=!=)*@', s)
+      Match with zero in the middle: {@@}
+      Subexpression occurs, but...: @=!=ABC@
+      Lots of occurrences: {@=!==!==!==!==!=@}
+      Must repeat entire pattern: @=!==!=!==!=@
+
+  TOPIC -- Matching Patterns in Text: Intermediate
+  --------------------------------------------------------------------
+
+  In a certain way, the lack of any quantifier symbol after an atom
+  quantifies the atom anyway: It says the atom occurs exactly once.
+  Extended regular expressions add a few other useful numbers to
+  "once exactly" and "zero or more times."  The plus sign ("+")
+  means "one or more times" and the question mark ("?") means
+  "zero or one times."  These quantifiers are by far the most
+  common enumerations you wind up using.
+
+  If you think about it, you can see that the extended regular
+  expressions do not actually let you "say" anything the basic
+  ones do not. They just let you say it in a shorter and more
+  readable way. For example, '(ABC)+' is equivalent to
+  '(ABC)(ABC)*', and 'X(ABC)?Y' is equivalent to 'XABCY|XY'. If
+  the atoms being quantified are themselves complicated grouped
+  subexpressions, the question mark and plus sign can make things
+  a lot shorter.
+
+      >>> from re_show import re_show
+      >>> s = '''AAAD
+      ... ABBBBCD
+      ... BBBCD
+      ... ABCCD
+      ... AAABBBC'''
+      >>> re_show(r'A+B*C?D', s)
+      {AAAD}
+      {ABBBBCD}
+      BBBCD
+      ABCCD
+      AAABBBC
+
+  -*-
+
+  Using extended regular expressions, you can specify arbitrary
+  pattern occurrence counts using a more verbose syntax than the
+  question mark, plus sign, and asterisk quantifiers. The curly
+  braces ("{" and "}") can surround a precise count of how many
+  occurrences you are looking for.
+
+  The most general form of the curly-brace quantification uses two
+  range arguments (the first must be no larger than the second, and
+  both must be non-negative integers). The occurrence count is
+  specified this way to fall between the minimum and maximum
+  indicated (inclusive). As shorthand, either argument may be left
+  empty: If so, the minimum/maximum is specified as zero/infinity,
+  respectively. If only one argument is used (with no comma in
+  there), exactly that number of occurrences are matched.
+
+      >>> from re_show import re_show
+      >>> s2 = '''aaaaa bbbbb ccccc
+      ... aaa bbb ccc
+      ... aaaaa bbbbbbbbbbbbbb ccccc'''
+      >>> re_show(r'a{5} b{,6} c{4,8}', s2)
+      {aaaaa bbbbb ccccc}
+      aaa bbb ccc
+      aaaaa bbbbbbbbbbbbbb ccccc
+
+      >>> re_show(r'a+ b{3,} c?', s2)
+      {aaaaa bbbbb c}cccc
+      {aaa bbb c}cc
+      {aaaaa bbbbbbbbbbbbbb c}cccc
+
+      >>> re_show(r'a{5} b{6,} c{4,8}', s2)
+      aaaaa bbbbb ccccc
+      aaa bbb ccc
+      {aaaaa bbbbbbbbbbbbbb ccccc}
+
+  -*-
+
+  One powerful option in creating search patterns is specifying
+  that a subexpression that was matched earlier in a regular
+  expression is matched again later in the expression. We do
+  this using backreferences. Backreferences are named by the
+  numbers 1 through 99, preceded by the backslash/escape
+  character when used in this manner. These backreferences refer
+  to each successive group in the match pattern, as in
+  '(one)(two)(three) \1\2\3'. Each numbered backreference refers
+  to the group that, in this example, has the word corresponding
+  to the number.
+
+  It is important to note something the example illustrates. What
+  gets matched by a backreference is the same literal string
+  matched the first time, even if the pattern that matched the
+  string could have matched other strings. Simply repeating the
+  same grouped subexpression later in the regular expression does
+  not match the same targets as using a backreference (but you have
+  to decide what it is you actually want to match in either case).
+
+  Backreferences refer back to whatever occurred in the previous
+  grouped expressions, in the order those grouped expressions
+  occurred. Up to 99 numbered backreferences may be used. However,
+  Python also allows naming backreferences, which can make it much
+  clearer what the backreferences are pointing to. The initial
+  pattern group must begin with '?P<name>', and the corresponding
+  backreference must contain '(?P=name)'.
+
+      >>> from re_show import re_show
+      >>> s2 = '''jkl abc xyz
+      ... jkl xyz abc
+      ... jkl abc abc
+      ... jkl xyz xyz
+      ... '''
+      >>> re_show(r'(abc|xyz) \1', s2)
+      jkl abc xyz
+      jkl xyz abc
+      jkl {abc abc}
+      jkl {xyz xyz}
+
+      >>> re_show(r'(abc|xyz) (abc|xyz)', s2)
+      jkl {abc xyz}
+      jkl {xyz abc}
+      jkl {abc abc}
+      jkl {xyz xyz}
+
+      >>> re_show(r'(?P<let3>abc|xyz) (?P=let3)', s2)
+      jkl abc xyz
+      jkl xyz abc
+      jkl {abc abc}
+      jkl {xyz xyz}
+
+  -*-
+
+  Quantifiers in regular expressions are greedy. That is, they
+  match as much as they possibly can.
+
+  Probably the easiest mistake to make in composing regular
+  expressions is to match too much. When you use a quantifier,
+  you want it to match everything (of the right sort) up to the
+  point where you want to finish your match. But when using the
+  '*', '+', or numeric quantifiers, it is easy to forget that the
+  last bit you are looking for might occur later in a line than
+  the one you are interested in.
+
+      >>> from re_show import re_show
+      >>> s2 = '''-- I want to match the words that start
+      ... -- with 'th' and end with 's'.
+      ... this
+      ... thus
+      ... thistle
+      ... this line matches too much
+      ... '''
+      >>> re_show(r'th.*s', s2)
+      -- I want to match {the words that s}tart
+      -- wi{th 'th' and end with 's}'.
+      {this}
+      {thus}
+      {this}tle
+      {this line matches} too much
+
+  -*-
+
+  Often if you find that regular expressions are matching too much,
+  a useful procedure is to reformulate the problem in your mind.
+  Rather than thinking about, "What am I trying to match later in
+  the expression?" ask yourself, "What do I need to avoid matching
+  in the next part?" This often leads to more parsimonious pattern
+  matches. Often the way to avoid a pattern is to use the
+  complement operator and a character class. Look at the example,
+  and think about how it works.
+
+  The trick here is that there are two different ways of
+  formulating almost the same sequence. Either you can think you
+  want to keep matching -until- you get to XYZ, or you can think you
+  want to keep matching -unless- you get to XYZ. These are subtly
+  different.
+
+  For people who have thought about basic probability, the same
+  pattern occurs. The chance of rolling a 6 on a die in one roll is
+  1/6. What is the chance of rolling a 6 in six rolls? A naive
+  calculation puts the odds at 1/6+1/6+1/6+1/6+1/6+1/6, or 100
+  percent. This is wrong, of course (after all, the chance after
+  twelve rolls isn't 200 percent). The correct calculation is, "How
+  do I avoid rolling a 6 for six rolls?" (i.e.,
+  5/6*5/6*5/6*5/6*5/6*5/6, or about 33 percent). The chance of
+  getting a 6 is the same chance as not avoiding it (or about 66
+  percent). In fact, if you imagine transcribing a series of die
+  rolls, you could apply a regular expression to the written
+  record, and similar thinking applies.
+
+      >>> from re_show import re_show
+      >>> s2 = '''-- I want to match the words that start
+      ... -- with 'th' and end with 's'.
+      ... this
+      ... thus
+      ... thistle
+      ... this line matches too much
+      ... '''
+      >>> re_show(r'th[^s]*.', s2)
+      -- I want to match {the words} {that s}tart
+      -- wi{th 'th' and end with 's}'.
+      {this}
+      {thus}
+      {this}tle
+      {this} line matches too much
+
+  -*-
+
+  Not all tools that use regular expressions allow you to modify
+  target strings. Some simply locate the matched pattern; the
+  mostly widely used regular expression tool is probably grep,
+  which is a tool for searching only. Text editors, for example,
+  may or may not allow replacement in their regular expression
+  search facility.
+
+  Python, being a general programming language, allows
+  sophisticated replacement patterns to accompany matches. Since
+  Python strings are immutable, [re] functions do not modify string
+  objects in place, but instead return the modified versions. But
+  as with functions in the [string] module, one can always rebind a
+  particular variable to the new string object that results from
+  [re] modification.
+
+  Replacement examples in this tutorial will call a function
+  're_new()' that is a wrapper for the module function `re.sub()`.
+  Original strings will be defined above the call, and the modified
+  results will appear below the call and with the same style of
+  additional markup of changed areas as 're_show()' used. Be
+  careful to notice that the curly braces in the results displayed
+  will not be returned by standard [re] functions, but are only
+  added here for emphasis (as is the typography). Simply import the
+  following function in the examples below:
+
+      #---------- re_new.py ----------#
+      import re
+      def re_new(pat, rep, s):
+          print re.sub(pat, '{'+rep+'}', s)
+
+  -*-
+
+  Let us take a look at a couple of modification examples that
+  build on what we have already covered. This one simply
+  substitutes some literal text for some other literal text. Notice
+  that `string.replace()` can achieve the same result and will be
+  faster in doing so.
+
+      >>> from re_new import re_new
+      >>> s = 'The zoo had wild dogs, bobcats, lions, and other wild cats.'
+      >>> re_new('cat','dog',s)
+      The zoo had wild dogs, bob{dog}s, lions, and other wild {dog}s.
+
+  -*-
+
+  Most of the time, if you are using regular expressions to modify a
+  target text, you will want to match more general patterns than just
+  literal strings. Whatever is matched is what gets replaced (even if it
+  is several different strings in the target):
+
+      >>> from re_new import re_new
+      >>> s = 'The zoo had wild dogs, bobcats, lions, and other wild cats.'
+      >>> re_new('cat|dog','snake',s)
+      The zoo had wild {snake}s, bob{snake}s, lions, and other wild {snake}s.
+      >>> re_new(r'[a-z]+i[a-z]*','nice',s)
+      The zoo had {nice} dogs, bobcats, {nice}, and other {nice} cats.
+
+  -*-
+
+  It is nice to be able to insert a fixed string everywhere a
+  pattern occurs in a target text. But frankly, doing that is
+  not very context sensitive. A lot of times, we do not want
+  just to insert fixed strings, but rather to insert something
+  that bears much more relation to the matched patterns.
+  Fortunately, backreferences come to our rescue here. One can
+  use backreferences in the pattern matches themselves, but it is
+  even more useful to be able to use them in replacement
+  patterns. By using replacement backreferences, one can pick
+  and choose from the matched patterns to use just the parts of
+  interest.
+
+  As well as backreferencing, the examples below illustrate the
+  importance of whitespace in regular expressions.  In most
+  programming code, whitespace is merely aesthetic.  But the
+  examples differ solely in an extra space within the arguments
+  to the second call--and the return value is importantly
+  different.
+
+      >>> from re_new import re_new
+      >>> s = 'A37 B4 C107 D54112 E1103 XXX'
+      >>> re_new(r'([A-Z])([0-9]{2,4})',r'\2:\1',s)
+      {37:A} B4 {107:C} {5411:D}2 {1103:E} XXX
+      >>> re_new(r'([A-Z])([0-9]{2,4}) ',r'\2:\1 ',s)
+      {37:A }B4 {107:C }D54112 {1103:E }XXX
+
+  -*-
+
+  This tutorial has already warned about the danger of matching
+  too much with regular expression patterns. But the danger is
+  so much more serious when one does modifications, that it is
+  worth repeating. If you replace a pattern that matches a
+  larger string than you thought of when you composed the
+  pattern, you have potentially deleted some important data from
+  your target.
+
+  It is always a good idea to try out regular expressions on
+  diverse target data that is representative of production usage.
+  Make sure you are matching what you think you are matching. A
+  stray quantifier or wildcard can make a surprisingly wide
+  variety of texts match what you thought was a specific pattern.
+  And sometimes you just have to stare at your pattern for a
+  while, or find another set of eyes, to figure out what is
+  really going on even after you see what matches. Familiarity
+  might breed contempt, but it also instills competence.
+
+  TOPIC -- Advanced Regular Expression Extensions
+  --------------------------------------------------------------------
+
+  Some very useful enhancements to basic regular expressions are
+  included with Python (and with many other tools). Many of
+  these do not strictly increase the power of Python's regular
+  expressions, but they -do- manage to make expressing them far
+  more concise and clear.
+
+  Earlier in the tutorial, the problems of matching too much were
+  discussed, and some workarounds were suggested. Python is nice
+  enough to make this easier by providing optional "non-greedy"
+  quantifiers.  These quantifiers grab as little as possible
+  while still matching whatever comes next in the pattern
+  (instead of as much as possible).
+
+  Non-greedy quantifiers have the same syntax as regular greedy
+  ones, except with the quantifier followed by a question mark.
+  For example, a non-greedy pattern might look like:
+  'A[A-Z]*?B'. In English, this means "match an A, followed by
+  only as many capital letters as are needed to find a B."
+
+  One little thing to look out for is the fact that the pattern
+  '[A-Z]*?.' will always match zero capital letters. No longer
+  matches are ever needed to find the following "any character"
+  pattern. If you use non-greedy quantifiers, watch out for
+  matching too little, which is a symmetric danger.
+
+      >>> from re_show import re_show
+      >>> s = '''-- I want to match the words that start
+      ... -- with 'th' and end with 's'.
+      ... this line matches just right
+      ... this # thus # thistle'''
+      >>> re_show(r'th.*s',s)
+      -- I want to match {the words that s}tart
+      -- wi{th 'th' and end with 's}'.
+      {this line matches jus}t right
+      {this # thus # this}tle
+
+      >>> re_show(r'th.*?s',s)
+      -- I want to match {the words} {that s}tart
+      -- wi{th 'th' and end with 's}'.
+      {this} line matches just right
+      {this} # {thus} # {this}tle
+
+      >>> re_show(r'th.*?s ',s)
+      -- I want to match {the words }that start
+      -- with 'th' and end with 's'.
+      {this }line matches just right
+      {this }# {thus }# thistle
+
+  -*-
+
+  Modifiers can be used in regular expressions or as arguments to
+  many of the functions in [re]. A modifier affects, in one way
+  or another, the interpretation of a regular expression pattern.
+  A modifier, unlike an atom, is global to the particular
+  match--in itself, a modifier doesn't match anything, it instead
+  constrains or directs what the atoms match.
+
+  When used directly within a regular expression pattern, one or
+  more modifiers begin the whole pattern, as in '(?Limsux)'. For
+  example, to match the word 'cat' without regard to the case of
+  the letters, one could use '(?i)cat'. The same modifiers may
+  be passed in as the last argument as bitmasks (i.e., with a '|'
+  between each modifier), but only to some functions in the [re]
+  module, not to all. For example, the two calls below are
+  equivalent:
+
+      >>> import re
+      >>> re.search(r'(?Li)cat','The Cat in the Hat').start()
+      4
+      >>> re.search(r'cat','The Cat in the Hat',re.L|re.I).start()
+      4
+
+  However, some function calls in [re] have no argument for
+  modifiers. In such cases, you should either use the modifier
+  prefix pseudo-group or pre-compile the regular expression
+  rather than use it in string form. For example:
+
+      >>> import re
+      >>> re.split(r'(?i)th','Brillig and The Slithy Toves')
+      ['Brillig and ', 'e Sli', 'y Toves']
+      >>> re.split(re.compile('th',re.I),'Brillig and the Slithy Toves')
+      ['Brillig and ', 'e Sli', 'y Toves']
+
+  See the [re] module documentation for details on which
+  functions take which arguments.
+
+  -*-
+
+  The listed modifiers below are used in [re] expressions. Users
+  of other regular expression tools may be accustomed to a 'g'
+  option for "global" matching. These other tools take a line of
+  text as their default unit, and "global" means to match
+  multiple lines. Python takes the actual passed string as its
+  unit, so "global" is simply the default. To operate on a
+  single line, either the regular expressions have to be tailored
+  to look for appropriate begin-line and end-line characters, or
+  the strings being operated on should be split first using
+  `string.split()` or other means.
+
+      #*--------- Regular expression modifiers ---------------#
+      * L (re.L) - Locale customization of \w, \W, \b, \B
+      * i (re.I) - Case-insensitive match
+      * m (re.M) - Treat string as multiple lines
+      * s (re.S) - Treat string as single line
+      * u (re.U) - Unicode customization of \w, \W, \b, \B
+      * x (re.X) - Enable verbose regular expressions
+
+  The single-line option ("s") allows the wildcard to match a
+  newline character (it won't otherwise). The multiple-line
+  option ("m") causes "^" and "$" to match the beginning and end
+  of each line in the target, not just the begin/end of the
+  target as a whole (the default).  The insensitive option ("i")
+  ignores differences between the case of letters.  The Locale
+  and Unicode options ("L" and "u") give different
+  interpretations to the word-boundary ("\b") and alphanumeric
+  ("\w") escaped patterns--and their inverse forms ("\B" and
+  "\W").
+
+  The verbose option ("x") is somewhat different from the others.
+  Verbose regular expressions may contain nonsignificant
+  whitespace and inline comments. In a sense, this is also just
+  a different interpretation of regular expression patterns, but
+  it allows you to produce far more easily readable complex
+  patterns. Some examples follow in the sections below.
+
+  -*-
+
+  Let's take a look first at how case-insensitive and single-line
+  options change the match behavior.
+
+      >>> from re_show import re_show
+      >>> s = '''MAINE # Massachusetts # Colorado #
+      ... mississippi # Missouri # Minnesota #'''
+      >>> re_show(r'M.*[ise] ', s)
+      {MAINE # Massachusetts }# Colorado #
+      mississippi # {Missouri }# Minnesota #
+
+      >>> re_show(r'(?i)M.*[ise] ', s)
+      {MAINE # Massachusetts }# Colorado #
+      {mississippi # Missouri }# Minnesota #
+
+      >>> re_show(r'(?si)M.*[ise] ', s)
+      {MAINE # Massachusetts # Colorado #
+      mississippi # Missouri }# Minnesota #
+
+  Looking back to the definition of 're_show()', we can see it
+  was defined to explicitly use the multiline option.  So
+  patterns displayed with 're_show()' will always be multiline.
+  Let us look at a couple of examples that use `re.findall()`
+  instead.
+
+      >>> from re_show import re_show
+      >>> s = '''MAINE # Massachusetts # Colorado #
+      ... mississippi # Missouri # Minnesota #'''
+      >>> re_show(r'(?im)^M.*[ise] ', s)
+      {MAINE # Massachusetts }# Colorado #
+      {mississippi # Missouri }# Minnesota #
+
+      >>> import re
+      >>> re.findall(r'(?i)^M.*[ise] ', s)
+      ['MAINE # Massachusetts ']
+      >>> re.findall(r'(?im)^M.*[ise] ', s)
+      ['MAINE # Massachusetts ', 'mississippi # Missouri ']
+
+  -*-
+
+  Matching word characters and word boundaries depends on exactly
+  what gets counted as being alphanumeric. Character codepages
+  for letters outside the (US-English) ASCII range differ among
+  national alphabets. Python versions are configured to a
+  particular locale, and regular expressions can optionally use
+  the current one to match words.
+
+  Of greater long-term significance is the [re] module's ability
+  (after Python 2.0) to look at the Unicode categories of
+  characters, and decide whether a character is alphabetic based on
+  that category. Locale settings work OK for European diacritics,
+  but for non-Roman sets, Unicode is clearer and less error prone.
+  The "u" modifier controls whether Unicode alphabetic characters
+  are recognized or merely ASCII ones:
+
+      >>> import re
+      >>> alef, omega = unichr(1488), unichr(969)
+      >>> u = alef +' A b C d '+omega+' X y Z'
+      >>> u, len(u.split()), len(u)
+      (u'\u05d0 A b C d \u03c9 X y Z', 9, 17)
+      >>> ':'.join(re.findall(ur'\b\w\b', u))
+      u'A:b:C:d:X:y:Z'
+      >>> ':'.join(re.findall(ur'(?u)\b\w\b', u))
+      u'\u05d0:A:b:C:d:\u03c9:X:y:Z'
+
+  -*-
+
+  Backreferencing in replacement patterns is very powerful, but
+  it is easy to use many groups in a complex regular expression,
+  which can be confusing to identify. It is often more legible
+  to refer to the parts of a replacement pattern in sequential
+  order. To handle this issue, Python's [re] patterns allow
+  "grouping without backreferencing."
+
+  A group that should not also be treated as a backreference has
+  a question mark colon at the beginning of the group, as in
+  '(?:pattern)'. In fact, you can use this syntax even when your
+  backreferences are in the search pattern itself:
+
+      >>> from re_new import re_new
+      >>> s = 'A-xyz-37 # B:abcd:142 # C-wxy-66 # D-qrs-93'
+      >>> re_new(r'([A-Z])(?:-[a-z]{3}-)([0-9]*)', r'\1\2', s)
+      {A37} # B:abcd:142 # {C66} # {D93}
+      >>> # Groups that are not of interest excluded from backref
+      ...
+      >>> re_new(r'([A-Z])(-[a-z]{3}-)([0-9]*)', r'\1\2', s)
+      {A-xyz-} # B:abcd:142 # {C-wxy-} # {D-qrs-}
+      >>> # One could lose track of groups in a complex pattern
+      ...
+
+  -*-
+
+  Python offers a particularly handy syntax for really complex
+  pattern backreferences. Rather than just play with the
+  numbering of matched groups, you can give them a name. Above
+  we pointed out the syntax for named backreferences in the
+  pattern space; for example, '(?P=name)'. However, a bit different
+  syntax is necessary in replacement patterns. For that, we use
+  the '\g' operator along with angle brackets and a name. For
+  example:
+
+      >>> from re_new import re_new
+      >>> s = "A-xyz-37 # B:abcd:142 # C-wxy-66 # D-qrs-93"
+      >>> re_new(r'(?P<prefix>[A-Z])(-[a-z]{3}-)(?P<id>[0-9]*)',
+      ...        r'\g<prefix>\g<id>',s)
+      {A37} # B:abcd:142 # {C66} # {D93}
+
+  -*-
+
+  Another trick of advanced regular expression tools is
+  "lookahead assertions."  These are similar to regular grouped
+  subexpression, except they do not actually grab what they
+  match. There are two advantages to using lookahead assertions.
+  On the one hand, a lookahead assertion can function in a
+  similar way to a group that is not backreferenced; that is, you
+  can match something without counting it in backreferences.
+  More significantly, however, a lookahead assertion can specify
+  that the next chunk of a pattern has a certain form, but let a
+  different (more general) subexpression actually grab it
+  (usually for purposes of backreferencing that other
+  subexpression).
+
+  There are two kinds of lookahead assertions:  positive and
+  negative. As you would expect, a positive assertion specifies
+  that something does come next, and a negative one specifies
+  that something does not come next. Emphasizing their
+  connection with non-backreferenced groups, the syntax for
+  lookahead assertions is similar:  '(?=pattern)' for positive
+  assertions, and '(?!pattern)' for negative assertions.
+
+      >>> from re_new import re_new
+      >>> s = 'A-xyz37 # B-ab6142 # C-Wxy66 # D-qrs93'
+      >>> # Assert that three lowercase letters occur after CAP-DASH
+      ...
+      >>> re_new(r'([A-Z]-)(?=[a-z]{3})([\w\d]*)', r'\2\1', s)
+      {xyz37A-} # B-ab6142 # C-Wxy66 # {qrs93D-}
+      >>> # Assert three lowercase letts do NOT occur after CAP-DASH
+      ...
+      >>> re_new(r'([A-Z]-)(?![a-z]{3})([\w\d]*)', r'\2\1', s)
+      A-xyz37 # {ab6142B-} # {Wxy66C-} # D-qrs93
+
+  -*-
+
+  Along with lookahead assertions, Python 2.0+ adds "lookbehind
+  assertions."  The idea is similar--a pattern is of interest
+  only if it is (or is not) preceded by some other pattern.
+  Lookbehind assertions are somewhat more restricted than
+  lookahead assertions because they may only look backwards by a
+  fixed number of character positions.  In other words, no
+  general quantifiers are allowed in lookbehind assertions.
+  Still, some patterns are most easily expressed using lookbehind
+  assertions.
+
+  As with lookahead assertions, lookbehind assertions come in a
+  negative and a positive flavor. The former assures that a certain
+  pattern does -not- precede the match, the latter assures that
+  the pattern -does- precede the match.
+
+      >>> from re_new import re_new
+      >>> re_show('Man', 'Manhandled by The Man')
+      {Man}handled by The {Man}
+
+      >>> re_show('(?<=The )Man', 'Manhandled by The Man')
+      Manhandled by The {Man}
+
+      >>> re_show('(?<!The )Man', 'Manhandled by The Man')
+      {Man}handled by The Man
+
+  -*-
+
+  In the later examples we have started to see just how
+  complicated regular expressions can get. These examples are
+  not the half of it. It is possible to do some almost absurdly
+  difficult-to-understand things with regular expression (but
+  ones that are nonetheless useful).
+
+  There are two basic facilities that Python's "verbose" modifier
+  ("x") uses in clarifying expressions. One is allowing regular
+  expressions to continue over multiple lines (by ignoring
+  whitespace like trailing spaces and newlines). The second is
+  allowing comments within regular expressions. When patterns
+  get complicated, do both!
+
+  The example given is a fairly typical example of a complicated,
+  but well-structured and well-commented, regular expression:
+
+      >>> from re_show import re_show
+      >>> s = '''The URL for my site is: http://mysite.com/mydoc.html. You
+      ... might also enjoy ftp://yoursite.com/index.html for a good
+      ... place to download files.'''
+      >>> pat = r'''  (?x)( # verbose identify URLs within text
+      ... (http|ftp|gopher) # make sure we find a resource type
+      ...               :// # ...needs to be followed by colon-slash-slash
+      ...         [^ \n\r]+ # some stuff then space, newline, tab is URL
+      ...                \w # URL always ends in alphanumeric char
+      ...       (?=[\s\.,]) # assert: followed by whitespace/period/comma
+      ...                 ) # end of match group'''
+      >>> re_show(pat, s)
+      The URL for my site is: {http://mysite.com/mydoc.html}. You
+      might also enjoy {ftp://yoursite.com/index.html} for a good
+      place to download files.
+
+
+SECTION 1 -- Some Common Tasks
+------------------------------------------------------------------------
+
+  PROBLEM: Making a text block flush left
+  --------------------------------------------------------------------
+
+  For visual clarity or to identify the role of text, blocks of
+  text are often indented--especially in prose-oriented documents
+  (but log files, configuration files, and the like might also
+  have unused initial fields).  For downstream purposes,
+  indentation is often irrelevant, or even outright
+  incorrect, since the indentation is not part of the text itself
+  but only a decoration of the text.  However, it often makes
+  matters even worse to perform the very most naive
+  transformation of indented text--simply remove leading
+  whitespace from every line.  While block indentation may be
+  decoration, the relative indentations of lines within blocks
+  may serve important or essential functions (for example, the
+  blocks of text might be Python source code).
+
+  The general procedure you need to take in maximally unindenting
+  a block of text is fairly simple. But it is easy to throw more
+  code at it than is needed, and arrive at some inelegant and
+  slow nested loops of `string.find()` and `string.replace()`
+  operations. A bit of cleverness in the use of regular
+  expressions--combined with the conciseness of a functional
+  programming (FP) style--can give you a quick, short, and direct
+  transformation.
+
+      #---------- flush_left.py ----------#
+      # Remove as many leading spaces as possible from whole block
+      from re import findall,sub
+      # What is the minimum line indentation of a block?
+      indent = lambda s: reduce(min,map(len,findall('(?m)^ *(?=\S)',s)))
+      # Remove the block-minimum indentation from each line?
+      flush_left = lambda s: sub('(?m)^ {%d}' % indent(s),'',s)
+
+      if __name__ == '__main__':
+          import sys
+          print flush_left(sys.stdin.read())
+
+  The 'flush_left()' function assumes that blocks are indented
+  with spaces.  If tabs are used--or used combined with
+  spaces--an initial pass through the utility 'untabify.py' (which
+  can be found at '$PYTHONPATH/tools/scripts/') can convert
+  blocks to space-only indentation.
+
+  A helpful adjunct to 'flush_left()' is likely to be the
+  'reformat_para()' function that was presented in Chapter 2,
+  Problem 2. Between the two of these, you could get a good part of
+  the way towards a "batch-oriented word processor." (What other
+  capabilities would be most useful?)
+
+
+  PROBLEM: Summarizing command-line option documentation
+  --------------------------------------------------------------------
+
+  Documentation of command-line options to programs is usually
+  in semi-standard formats in places like manpages, docstrings,
+  READMEs and the like.  In general, within documentation you
+  expect to see command-line options indented a bit, followed by
+  a bit more indentation, followed by one or more lines of
+  description, and usually ended by a blank line.  This style is
+  readable for users browsing documentation, but is of
+  sufficiently complexity and variability that regular
+  expressions are well suited to finding the right descriptions
+  (simple string methods fall short).
+
+  A specific scenario where you might want a summary of
+  command-line options is as an aid to understanding
+  configuration files that call multiple child commands.  The
+  file '/etc/inetd.conf' on Unix-like systems is a good example
+  of such a configuration file.  Moreover, configuration files
+  themselves often have enough complexity and variability within
+  them that simple string methods have difficulty parsing them.
+
+  The utility below will look for every service launched by
+  '/etc/inetd.conf' and present to STDOUT summary documentation
+  of all the options used when the services are started.
+
+      #---------- show_services.py ----------#
+      import re, os, string, sys
+
+      def show_opts(cmdline):
+          args = string.split(cmdline)
+          cmd = args[0]
+          if len(args) > 1:
+              opts = args[1:]
+          # might want to check error output, so use popen3()
+          (in_, out_, err) = os.popen3('man %s | col -b' % cmd)
+          manpage = out_.read()
+          if len(manpage) > 2:      # found actual documentation
+              print '\n%s' % cmd
+              for opt in opts:
+                  pat_opt = r'(?sm)^\s*'+opt+r'.*?(?=\n\n)'
+                  opt_doc = re.search(pat_opt, manpage)
+                  if opt_doc is not None:
+                      print opt_doc.group()
+                  else:             # try harder for something relevant
+                      mentions = []
+                      for para in string.split(manpage,'\n\n'):
+                         if re.search(opt, para):
+                             mentions.append('\n%s' % para)
+                      if not mentions:
+                         print '\n    ',opt,' '*9,'Option docs not found'
+                      else:
+                         print '\n    ',opt,' '*9,'Mentioned in below para:'
+                         print '\n'.join(mentions)
+          else:                     # no manpage available
+              print cmdline
+              print '    No documentation available'
+
+      def services(fname):
+          conf = open(fname).read()
+          pat_srv = r'''(?xm)(?=^[^#])       # lns that are not commented out
+                        (?:(?:[\w/]+\s+){6}) # first six fields ignored
+                        (.*$)                # to end of ln is servc launch'''
+          return re.findall(pat_srv, conf)
+
+      if __name__ == '__main__':
+          for service in services(sys.argv[1]):
+              show_opts(service)
+
+  The particular tasks performed by 'show_opts()' and 'services()'
+  are somewhat specific to Unix-like systems, but the general
+  techniques are more broadly applicable. For example, the
+  particular comment character and number of fields in
+  '/etc/inetd.conf' might be different for other launch scripts,
+  but the use of regular expressions to find the launch commands
+  would apply elsewhere. If the 'man' and 'col' utilities are not
+  on the relevant system, you might do something equivalent, such
+  as reading in the docstrings from Python modules with similar
+  option descriptions (most of the samples in '$PYTHONPATH/tools/'
+  use compatible documentation, for example).
+
+  Another thing worth noting is that even where regular expressions
+  are used in parsing some data, you need not do everything with
+  regular expressions. The simple `string.split()` operation to
+  identify paragraphs in 'show_opts()' is still the quickest and
+  easiest technique, even though `re.split()` could do the same
+  thing.
+
+  Note: Along the lines of paragraph splitting, here is a thought
+  problem. What is a regular expression that matches every whole
+  paragraph that contains within it some smaller pattern 'pat'? For
+  purposes of the puzzle, assume that a paragraph is some text that
+  both starts and ends with doubled newlines ("\n\n").
+
+
+  PROBLEM:  Detecting duplicate words
+  --------------------------------------------------------------------
+
+  A common typo in prose texts is doubled words (hopefully they
+  have been edited out of this book except in those few cases
+  where they are intended).  The same error occurs to a lesser
+  extent in programming language code, configuration files, or
+  data feeds.  Regular expressions are well-suited to detecting
+  this occurrence, which just amounts to a backreference to a
+  word pattern.  It's easy to wrap the regex in a small utility
+  with a few extra features:
+
+      #---------- dupwords.py ----------#
+      # Detect doubled words and display with context
+      # Include words doubled across lines but within paras
+
+      import sys, re, glob
+      for pat in sys.argv[1:]:
+          for file in glob.glob(pat):
+              newfile = 1
+              for para in open(file).read().split('\n\n'):
+                  dups = re.findall(r'(?m)(^.*(\b\w+\b)\s*\b\2\b.*$)', para)
+                  if dups:
+                      if newfile:
+                          print '%s\n%s\n' % ('-'*70,file)
+                          newfile = 0
+                      for dup in dups:
+                          print '[%s] -->' % dup[1], dup[0]
+
+  This particular version grabs the line or lines on which
+  duplicates occur and prints them for context (along with a prompt
+  for the duplicate itself). Variations are straightforward. The
+  assumption made by 'dupwords.py' is that a doubled word that
+  spans a line (from the end of one to the beginning of another,
+  ignoring whitespace) is a real doubling; but a duplicate that
+  spans paragraphs is not likewise noteworthy.
+
+
+  PROBLEM: Checking for server errors:
+  --------------------------------------------------------------------
+
+  Web servers are a ubiquitous source of information nowadays.
+  But finding URLs that lead to real documents is largely
+  hit-or-miss.  Every Web maintainer seems to reorganize her site
+  every month or two, thereby breaking bookmarks and hyperlinks.
+  As bad as the chaos is for plain Web surfers, it is worse for
+  robots faced with the difficult task of recognizing the
+  difference between content and errors.  By-the-by, it is easy
+  to accumulate downloaded Web pages that consist of error
+  messages rather than desired content.
+
+  In principle, Web servers can and should return error codes
+  indicating server errors.  But in practice, Web servers almost
+  always return dynamically generated results pages for erroneous
+  requests.  Such pages are basically perfectly normal HTML pages
+  that just happen to contain text like "Error 404:  File not
+  found!"  Most of the time these pages are a bit fancier than
+  this, containing custom graphics and layout, links to site
+  homepages, JavaScript code, cookies, meta tags, and all sorts
+  of other stuff.  It is actually quite amazing just how much
+  many Web servers send in response to requests for nonexistent
+  URLs.
+
+  Below is a very simple Python script to examine just what Web
+  servers return on valid or invalid requests.  Getting an error
+  page is usually as simple as asking for a page called
+  'http://somewebsite.com/phony-url' or the like (anything that
+  doesn't really exist).  [urllib] is discussed in Chapter 5, but
+  its details are not important here.
+
+      #---------- url_examine.py ----------#
+      import sys
+      from urllib import urlopen
+
+      if len(sys.argv) > 1:
+          fpin = urlopen(sys.argv[1])
+          print fpin.geturl()
+          print fpin.info()
+          print fpin.read()
+      else:
+          print "No specified URL"
+
+  Given the diversity of error pages you might receive, it is
+  difficult or impossible to create a regular expression (or any
+  program) that determines with certainty whether a given HTML
+  document is an error page.  Furthermore, some sites choose to
+  generate pages that are not really quite errors, but not
+  really quite content either (e.g, generic directories of site
+  information with suggestions on how to get to content).  But
+  some heuristics come quite close to separating content from
+  errors.  One noteworthy heuristic is that the interesting
+  errors are almost always 404 or 403 (not a sure thing, but good
+  enough to make smart guesses).  Below is a utility to rate the
+  "error probability" of HTML documents:
+
+      #---------- error_page.py ----------#
+      import re, sys
+      page = sys.stdin.read()
+
+      # Mapping from patterns to probability contribution of pattern
+      err_pats = {r'(?is)<TITLE>.*?(404|403).*?ERROR.*?</TITLE>': 0.95,
+                  r'(?is)<TITLE>.*?ERROR.*?(404|403).*?</TITLE>': 0.95,
+                  r'(?is)<TITLE>ERROR</TITLE>': 0.30,
+                  r'(?is)<TITLE>.*?ERROR.*?</TITLE>': 0.10,
+                  r'(?is)<META .*?(404|403).*?ERROR.*?>': 0.80,
+                  r'(?is)<META .*?ERROR.*?(404|403).*?>': 0.80,
+                  r'(?is)<TITLE>.*?File Not Found.*?</TITLE>': 0.80,
+                  r'(?is)<TITLE>.*?Not Found.*?</TITLE>': 0.40,
+                  r'(?is)<BODY.*(404|403).*</BODY>': 0.10,
+                  r'(?is)<H1>.*?(404|403).*?</H1>': 0.15,
+                  r'(?is)<BODY.*not found.*</BODY>': 0.10,
+                  r'(?is)<H1>.*?not found.*?</H1>': 0.15,
+                  r'(?is)<BODY.*the requested URL.*</BODY>': 0.10,
+                  r'(?is)<BODY.*the page you requested.*</BODY>': 0.10,
+                  r'(?is)<BODY.*page.{1,50}unavailable.*</BODY>': 0.10,
+                  r'(?is)<BODY.*request.{1,50}unavailable.*</BODY>': 0.10,
+                  r'(?i)does not exist': 0.10,
+                 }
+      err_score = 0
+      for pat, prob in err_pats.items():
+          if err_score > 0.9: break
+          if re.search(pat, page):
+              # print pat, prob
+              err_score += prob
+
+      if err_score > 0.90:   print 'Page is almost surely an error report'
+      elif err_score > 0.75: print 'It is highly likely page is an error report'
+      elif err_score > 0.50: print 'Better-than-even odds page is error report'
+      elif err_score > 0.25: print 'Fair indication page is an error report'
+      else:                 print 'Page is probably real content'
+
+  Tested against a fair number of sites, a collection like this of
+  regular expression searches and threshold confidences works
+  quite well.  Within the author's own judgment of just what is
+  really an error page, 'erro_page.py' has gotten no false
+  positives and always arrived at at least the lowest warning
+  level for every true error page.
+
+  The patterns chosen are all fairly simple, and both the
+  patterns and their weightings were determined entirely
+  subjectively by the author.  But something like this weighted
+  hit-or-miss technique can be used to solve many "fuzzy logic"
+  matching problems (most having nothing to do with Web server
+  errors).
+
+  Code like that above can form a general approach to more
+  complete applications.  But for what it is worth, the scripts
+  'url_examine.py' and 'error_page.py' may be used directly
+  together by piping from the first to the second.  For example:
+
+      #*------ Using ex_error_page.py -----#
+      % python urlopen.py http://gnosis.cx/nonesuch | python ex_error_page.py
+      Page is almost surely an error report
+
+
+  PROBLEM: Reading lines with continuation characters
+  --------------------------------------------------------------------
+
+  Many configuration files and other types of computer code are
+  line oriented, but also have a facility to treat multiple lines
+  as if they were a single logical line.  In processing such a
+  file it is usually desirable as a first step to turn all these
+  logical lines into actual newline-delimited lines (or more
+  likely, to transform both single and continued lines as
+  homogeneous list elements to iterate through later).  A
+  continuation character is generally required to be the -last-
+  thing on a line before a newline, or possibly the last thing
+  other than some whitespace.  A small (and very partial) table
+  of continuation characters used by some common and uncommon
+  formats is listed below:
+
+      #*----- Common continuation characters -----#
+      \  Python, JavaScript, C/C++, Bash, TCL, Unix config
+      _  Visual Basic, PAW
+      &  Lyris, COBOL, IBIS
+      ;  Clipper, TOP
+      -  XSPEC, NetREXX
+      =  Oracle Express
+
+  Most of the formats listed are programming languages, and
+  parsing them takes quite a bit more than just identifying the
+  lines.  More often, it is configuration files of various sorts
+  that are of interest in simple parsing, and most of the time
+  these files use a common Unix-style convention of using
+  trailing backslashes for continuation lines.
+
+  One -could- manage to parse logical lines with a [string]
+  module approach that looped through lines and performed
+  concatenations when needed.  But a greater elegance is served
+  by reducing the problem to a single regular expression.  The
+  module below provides this:
+
+      #---------- logical_lines.py ----------#
+      # Determine the logical lines in a file that might have
+      # continuation characters.  'logical_lines()' returns a
+      # list.  The self-test prints the logical lines as
+      # physical lines (for all specified files and options).
+
+      import re
+
+      def logical_lines(s, continuation='\\', strip_trailing_space=0):
+          c = continuation
+          if strip_trailing_space:
+              s = re.sub(r'(?m)(%s)(\s+)$'%[c], r'\1', s)
+          pat_log = r'(?sm)^.*?$(?<!%s)'%[c]  # e.g. (?sm)^.*?$(?<!\\)
+          return [t.replace(c+'\n','') for t in re.findall(pat_log, s)]
+
+      if __name__ == '__main__':
+          import sys
+          files, strip, contin = ([], 0, '\\')
+          for arg in sys.argv[1:]:
+              if arg[:-1] == '--continue=': contin = arg[-1]
+              elif arg[:-1] == '-c': contin = arg[-1]
+              elif arg in ('--string','-s'): strip = 1
+              else: files.append(arg)
+          if not files: files.append(sys.stdin)
+          for file in files:
+              s = open(sys.argv[1]).read()
+              print '\n'.join(logical_lines(s, contin, strip))
+
+  The comment in the 'pat_log' definition shows a bit just how
+  cryptic regular expressions can be at times.  The comment is
+  the pattern that is used for the default value of
+  'continuation'.  But as dense as it is with symbols, you can
+  still read it by proceeding slowly, left to right.  Let us try
+  a version of the same line with the verbose modifier and
+  comments:
+
+      >>> pat = r'''
+      ... (?x)    # This is the verbose version
+      ... (?s)    # In the pattern, let "." match newlines, if needed
+      ... (?m)    # Allow ^ and $ to match every begin- and end-of-line
+      ... ^       # Start the match at the beginning of a line
+      ... .*?     # Non-greedily grab everything until the first place
+      ...         # where the rest of the pattern matches (if possible)
+      ... $       # End the match at an end-of-line
+      ... (?<!    # Only count as a match if the enclosed pattern was not
+      ...         # the immediately last thing seen (negative lookbehind)
+      ... \\)     # It wasn't an (escaped) backslash'''
+
+
+  PROBLEM: Identifying URLs and email addresses in texts
+  --------------------------------------------------------------------
+
+  A neat feature of many Internet and news clients is their
+  automatic identification of resources that the applications can
+  act upon. For URL resources, this usually means making the links
+  "clickable"; for an email address it usually means launching a
+  new letter to the person at the address. Depending on the nature
+  of an application, you could perform other sorts of actions for
+  each identified resource. For a text processing application, the
+  use of a resource is likely to be something more batch-oriented:
+  extraction, transformation, indexing, or the like.
+
+  Fully and precisely implementing RFC1822 (for email addresses)
+  or RFC1738 (for URLs) is possible within regular expressions.
+  But doing so is probably even more work than is really needed
+  to identify 99% of resources.  Moreover, a significant number
+  of resources in the "real world" are not strictly compliant
+  with the relevant RFCs--most applications give a certain leeway
+  to "almost correct" resource identifiers.  The utility below
+  tries to strike approximately the same balance of other
+  well-implemented and practical applications:  get -almost-
+  everything that was intended to look like a resource, and
+  -almost- nothing that was intended not to:
+
+      #---------- find_urls.py ----------#
+      # Functions to identify and extract URLs and email addresses
+
+      import re, fileinput
+
+      pat_url = re.compile(  r'''
+                       (?x)( # verbose identify URLs within text
+           (http|ftp|gopher) # make sure we find a resource type
+                         :// # ...needs to be followed by colon-slash-slash
+              (\w+[:.]?){2,} # at least two domain groups, e.g. (gnosis.)(cx)
+                        (/?| # could be just the domain name (maybe w/ slash)
+                  [^ \n\r"]+ # or stuff then space, newline, tab, quote
+                      [\w/]) # resource name ends in alphanumeric or slash
+           (?=[\s\.,>)'"\]]) # assert: followed by white or clause ending
+                           ) # end of match group
+                             ''')
+      pat_email = re.compile(r'''
+                      (?xm)  # verbose identify URLs in text (and multiline)
+                   (?=^.{11} # Mail header matcher
+           (?<!Message-ID:|  # rule out Message-ID's as best possible
+               In-Reply-To)) # ...and also In-Reply-To
+                      (.*?)( # must grab to email to allow prior lookbehind
+          ([A-Za-z0-9-]+\.)? # maybe an initial part: DAVID.mertz@gnosis.cx
+               [A-Za-z0-9-]+ # definitely some local user: MERTZ@gnosis.cx
+                           @ # ...needs an at sign in the middle
+                (\w+\.?){2,} # at least two domain groups, e.g. (gnosis.)(cx)
+           (?=[\s\.,>)'"\]]) # assert: followed by white or clause ending
+                           ) # end of match group
+                             ''')
+      extract_urls = lambda s: [u[0] for u in re.findall(pat_url, s)]
+      extract_email = lambda s: [(e[1]) for e in re.findall(pat_email, s)]
+
+      if __name__ == '__main__':
+          for line in fileinput.input():
+              urls = extract_urls(line)
+              if urls:
+                  for url in urls:
+                      print fileinput.filename(),'=>',url
+              emails = extract_email(line)
+              if emails:
+                  for email in emails:
+                      print fileinput.filename(),'->',email
+
+  A number of features are notable in the utility above. One point
+  is that everything interesting is done within the regular
+  expressions themselves. The actual functions 'extract_urls()' and
+  'extract_email()' are each a single line, using the conciseness
+  of functional-style programming, especially list comprehensions
+  (four or five lines of more procedural code could be used, but
+  this style helps emphasize where the work is done). The utility
+  itself prints located resources to STDOUT, but you could do
+  something else with them just as easily.
+
+  A bit of testing of preliminary versions of the regular
+  expressions led me to add a few complications to them. In part
+  this lets readers see some more exotic features in action; but in
+  greater part, this helps weed out what I would consider "false
+  positives." For URLs we demand at least two domain groups--this
+  rules out LOCALHOST addresses, if present. However, by allowing a
+  colon to end a domain group, we allow for specified ports such as
+  'http://gnosis.cx:8080/resource/'.
+
+  Email addresses have one particular special consideration.  If
+  the files you are scanning for email addresses happen to be
+  actual mail archives, you will also find Message-ID strings.
+  The form of these headers is very similar to that of email
+  addresses ('In-Reply-To:' headers also contain Message-IDs).
+  By combining a negative lookbehind assertion with some
+  throwaway groups, we can make sure that everything that gets
+  extracted is not a 'Message-ID:' header line.  It gets a little
+  complicated to combine these things correctly, but the power of
+  it is quite remarkable.
+
+
+  PROBLEM: Pretty-printing numbers
+  --------------------------------------------------------------------
+
+  In producing human-readable documents, Python's default string
+  representation of numbers leaves something to be desired.
+  Specifically, the delimiters that normally occur between powers
+  of 1,000 in written large numerals are not produced by the
+  `str()` or `repr()` functions--which makes reading large
+  numbers difficult.  For example:
+
+      >>> budget = 12345678.90
+      >>> print 'The company budget is $%s' % str(budget)
+      The company budget is $12345678.9
+      >>> print 'The company budget is %10.2f' % budget
+      The company budget is 12345678.90
+
+  Regular expressions can be used to transform numbers that are
+  already "stringified" (an alternative would be to process
+  numeric values by repeated division/remainder operations,
+  stringifying the chunks).  A few basic utility functions are
+  contained in the module below.
+
+      #---------- pretty_nums.py ----------#
+      # Create/manipulate grouped string versions of numbers
+
+      import re
+
+      def commify(f, digits=2, maxgroups=5, european=0):
+          template = '%%1.%df' % digits
+          s = template % f
+          pat = re.compile(r'(\d+)(\d{3})([.,]|$)([.,\d]*)')
+          if european:
+              repl = r'\1.\2\3\4'
+          else:   # could also use locale.localeconv()['decimal_point']
+              repl = r'\1,\2\3\4'
+          for i in range(maxgroups):
+              s = re.sub(pat,repl,s)
+          return s
+
+      def uncommify(s):
+          return s.replace(',','')
+
+      def eurify(s):
+          s = s.replace('.','\000')   # place holder
+          s = s.replace(',','.')      # change group delimiter
+          s = s.replace('\000',',')   # decimal delimiter
+          return s
+
+      def anglofy(s):
+          s = s.replace(',','\000')   # place holder
+          s = s.replace('.',',')      # change group delimiter
+          s = s.replace('\000','.')   # decimal delimiter
+          return s
+
+      vals = (12345678.90, 23456789.01, 34567890.12)
+      sample = '''The company budget is $%s.
+      Its debt is $%s, against assets
+      of $%s'''
+
+      if __name__ == '__main__':
+          print sample % vals, '\n-----'
+          print sample % tuple(map(commify, vals)), '\n-----'
+          print eurify(sample % tuple(map(commify, vals))), '\n-----'
+
+  The technique used in 'commify()' has virtues and vices.  It is
+  quick, simple, and it works.  It is also slightly kludgey
+  inasmuch as it loops through the substitution (and with the
+  default 'maxgroups' argument, it is no good for numbers bigger
+  than a quintillion; most numbers you encounter are smaller
+  than this).  If purity is a goal--and it probably should not
+  be--you could probably come up with a single regular expression
+  to do the whole job.  Another quick and convenient technique is
+  the "place holder" idea that was mentioned in the introductory
+  discussion of the [string] module.
+
+
+SECTION 2 -- Standard Modules
+------------------------------------------------------------------------
+
+  TOPIC -- Versions and Optimizations
+  --------------------------------------------------------------------
+
+    Rules of Optimization:
+    Rule 1: Don't do it.
+    Rule 2 (for experts only): Don't do it yet.
+      -- M.A. Jackson
+
+  Python has undergone several changes in its regular expression
+  support. [regex] was superceded by [pre] in Python 1.5; [pre],
+  in turn, by [sre] in Python 2.0. Although Python has continued
+  to include the older modules in its standard library for
+  backwards compatibility, the older ones are deprecated when the
+  newer versions are included. From Python 1.5 forward, the
+  module [re] has served as a wrapper to the underlying regular
+  expression engine ([sre] or [pre]). But even though Python
+  2.0+ has used [re] to wrap [sre], [pre] is still available (the
+  latter along with its own underlying [pcre] C extension
+  module that can technically be used directly).
+
+  Each version has generally improved upon its predecessor, but
+  with something as complicated as regular expressions there are
+  always a few losses with each gain. For example, [sre] adds
+  Unicode support and is faster for most operations--but [pre]
+  has better optimization of case-insensitive searches. Subtle
+  details of regular expression patterns might even let the
+  quite-old [regex] module perform faster than the newer ones.
+  Moreover, optimizing regular expressions can be extremely
+  complicated and dependent upon specific small version
+  differences.
+
+  Readers might start to feel their heads swim with these version
+  details. Don't panic. Other than out of historic interest,
+  you really do not need to worry about what implementations
+  underlie regular expression support. The simple rule is just
+  to use the module [re] and not think about what it wraps--the
+  interface is compatible between versions.
+
+  The real virtue of regular expressions is that they allow a
+  concise and precise (albeit somewhat cryptic) description of
+  complex patterns in text. Most of the time, regular expression
+  operations are -fast enough-; there is rarely any point in
+  optimizing an application past the point where it does what it
+  needs to do fast enough that speed is not a problem. As Knuth
+  famously remarks, "We should forget about small efficiencies, say
+  about 97% of the time: Premature optimization is the root of all
+  evil." ("Computer Programming as an Art" in _Literate
+  Programming_, CSLI Lecture Notes Number 27, Stanford University
+  Center for the Study of Languages and Information, 1992).
+
+  In case regular expression operations prove to be a genuinely
+  problematic performance bottleneck in an application, there are
+  four steps you should take in speeding things up. Try these in
+  order:
+
+  1.  Think about whether there is a way to simplify the regular
+      expressions involved. Most especially, is it possible to
+      reduce the likelihood of backtracking during pattern
+      matching? You should always test your beliefs about such
+      simplification, however; performance characteristics rarely
+      turn out exactly as you expect.
+
+  2.  Consider whether regular expressions are -really- needed
+      for the problem at hand. With surprising frequency, faster
+      and simpler operations in the [string] module (or,
+      occasionally, in other modules) do what needs to be done.
+      Actually, this step can often come earlier than the first
+      one.
+
+  3.  Write the search or transformation in a faster and
+      lower-level engine, especially [mx.TextTools]. Low-level
+      modules will inevitably involve more work and considerably
+      more intense thinking about the problem. But
+      order-of-magnitude speed gains are often possible for the
+      work.
+
+  4.  Code the application (or the relevant parts of it) in a
+      different programming language. If speed is the absolutely
+      first consideration in an application, Assembly, C, or C++
+      are going to win. Tools like swig--while outside the scope
+      of this book--can help you create custom extension modules
+      to perform bottleneck operations. There is a chance also
+      that if the problem -really must- be solved with regular
+      expressions that Perl's engine will be faster (but not
+      always, by any means).
+
+
+  TOPIC -- Simple Pattern Matching
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE -- fnmatch : Glob-style pattern matching
+  =================================================================
+
+  The real purpose of the [fnmatch] module is to match filenames
+  against a pattern. Most typically, [fnmatch] is used indirectly
+  through the [glob] module, where the latter returns lists of
+  matching files (for example to process each matching file). But
+  [fnmatch] does not itself know anything about filesystems, it
+  simply provides a way of checking patterns against strings. The
+  pattern language used by [fnmatch] is much simpler than that used
+  by [re], which can be either good or bad, depending on your
+  needs. As a plus, most everyone who has used a DOS, Windows,
+  OS/2, or Unix command line is already familiar with the [fnmatch]
+  pattern language, which is simply shell-style expansions.
+
+  Four subpatterns are available in [fnmatch] patterns. In contrast
+  to [re] patterns, there is no grouping and no quantifiers.
+  Obviously, the discernment of matches is much less with [fnmatch]
+  than with [re]. The subpatterns are as follows:
+
+      #------------- Glob-style subpatterns --------------#
+      *      Match everything that follows (non-greedy).
+      ?      Match any single character.
+      [set]  Match one character from a set.  A set generally
+             follows the same rules as a regular expression
+             character class.  It may include zero or more ranges
+             and zero or more enumerated characters.
+      [!set] Match any one character that is not in the set.
+
+  A pattern is simply the concatenation of one or more
+  subpatterns.
+
+  FUNCTIONS:
+
+  fnmatch.fnmatch(s, pat)
+      Test whether the pattern 'pat' matches the string 's'.  On
+      case-insensitive filesystems, the match is case
+      insensitive.  A cross-platform script should avoid
+      `fnmatch.fnmatch()` except when used to match actual
+      filenames.
+
+      >>> from fnmatch import fnmatch
+      >>> fnmatch('this', '[T]?i*')  # On Unix-like system
+      0
+
+      >>> fnmatch('this', '[T]?i*')  # On Win-like system
+      1
+
+      SEE ALSO, `fnmatch.fnmatchcase()`
+
+  fnmatch.fnmatchcase(s, pat)
+      Test whether the pattern 'pat' matches the string 's'.
+      The match is case-sensitive regardless of platform.
+
+      >>> from fnmatch import fnmatchcase
+      >>> fnmatchcase('this', '[T]?i*')
+      0
+      >>> from string import upper
+      >>> fnmatchcase(upper('this'), upper('[T]?i*'))
+      1
+
+      SEE ALSO, `fnmatch.fnmatch()`
+
+  fnmatch.filter(lst, pat)
+      Return a new list containing those elements of 'lst' that
+      match 'pat'.  The matching behaves like `fnmatch.fnmatch()`
+      rather than like `fnmatch.fnmatchcase()`, so the results
+      can be OS-dependent.  The example below shows a (slower)
+      means of performing a case-sensitive match on all
+      platforms.
+
+      >>> import fnmatch          # Assuming Unix-like system
+      >>> fnmatch.filter(['This','that','other','thing'], '[Tt]?i*')
+      ['This', 'thing']
+      >>> fnmatch.filter(['This','that','other','thing'], '[a-z]*')
+      ['that', 'other', 'thing']
+      >>> from fnmatch import fnmatchcase   # For all platforms
+      >>> mymatch = lambda s: fnmatchcase(s, '[a-z]*')
+      >>> filter(mymatch, ['This','that','other','thing'])
+      ['that', 'other', 'thing']
+
+      For an explanation of the built-in function `filter()`
+      function, see Appendix A.
+
+      SEE ALSO, `fnmatch.fnmatch()`, `fnmatch.fnmatchcase()`
+
+  SEE ALSO, [glob], [re]
+
+
+  TOPIC -- Regular Expression Modules
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE -- pre : Pre-sre module
+
+  =================================================================
+    MODULE -- pcre : Underlying C module for pre
+  =================================================================
+
+  The Python-written module [pre], and the C-written [pcre]
+  module that implements the actual regular expression engine,
+  are the regular expression modules for Python 1.5-1.6.  For
+  complete backwards compatibility, they continue to be included
+  in Python 2.0+.  Importing the symbol space of [pre] is
+  intended to be equivalent to importing [re] (i.e.,  [sre] at one
+  level of indirection) in Python 2.0+, with the exception of the
+  handling of Unicode strings, which [pre] cannot do.  That is,
+  the lines below are almost equivalent, other than potential
+  performance differences in specific operations:
+
+      >>> import pre as re
+      >>> import re
+
+  However, there is very rarely any reason to use [pre] in Python
+  2.0+.  Anyone deciding to import [pre] should know far more
+  about the internals of regular expression engines than is
+  contained in this book.  Of course, prior to Python 2.0,
+  importing [re] simply imports [pcre] itself (and the Python
+  wrappers later renamed [pre]).
+
+  SEE ALSO, [re]
+
+  =================================================================
+    MODULE -- reconvert : Convert [regex] patterns to [re] patterns
+  =================================================================
+
+  This module exists solely for conversion of old regular
+  expressions from scripts written for pre-1.5 versions of
+  Python, or possibly from regular expression patterns used with
+  tools such as sed, awk, or grep.  Conversions are not
+  guaranteed to be entirely correct, but [reconvert] provides a
+  starting point for a code update.
+
+  FUNCTIONS:
+
+  reconvert.convert(s)
+      Return as a string the modern [re]-style pattern that
+      corresponds to the [regex]-style pattern passed in argument
+      's'.  For example:
+
+      >>> import reconvert
+      >>> reconvert.convert(r'\<\(cat\|dog\)\>')
+      '\\b(cat|dog)\\b'
+      >>> import re
+      >>> re.findall(r'\b(cat|dog)\b', "The dog chased a bobcat")
+      ['dog']
+
+  SEE ALSO, [regex]
+
+  =================================================================
+    MODULE -- regex : Deprecated regular expression module
+  =================================================================
+
+  The [regex] module is distributed with recent Python versions
+  only to ensure strict backwards compatibility of scripts.
+  Starting with Python 2.1, importing [regex] will produce a
+  DeprecationWarning:
+
+      #*----------- Deprecation warning for regex --------------#
+      % python -c "import regex"
+      -c:1:  DeprecationWarning:  the regex module is deprecated;
+      please use the re module
+
+  For all users of Python 1.5+, [regex] should not be used in new
+  code, and efforts should be made to convert its usage to [re]
+  calls.
+
+  SEE ALSO, [reconvert]
+
+  =================================================================
+    MODULE -- sre : Secret Labs Regular Expression Engine
+  =================================================================
+
+  Support for regular expressions in Python 2.0+ is provided by
+  the module [sre].  The module [re] simply wraps [sre] in order
+  to have a backwards- and forwards-compatible name.  There will
+  almost never be any reason to import [sre] itself; some later
+  version of Python might eventually deprecate [sre] also.  As
+  with [pre], anyone deciding to import [sre] itself should know
+  far more about the internals of regular expression engines than
+  is contained in this book.
+
+  SEE ALSO, [re]
+
+  =================================================================
+    MODULE -- re : Regular expression operations
+  =================================================================
+
+  PATTERN SUMMARY:
+
+  The chart below lists regular expression patterns; following
+  that are explanations of each pattern.  For more detailed
+  explanation of patterns in action, consult the tutorial and/or
+  problems contained in this chapter.  The utility function
+  're_show()' defined in the tutorial is used in some
+  descriptions.
+
+  !!!
+
+      #----- Regular expression patterns -----#
+      <<regex_patterns.eps>>
+
+
+  ATOMIC OPERATORS:
+
+  Plain symbol
+      Any character not described below as having a special
+      meaning simply represents itself in the target string.  An
+      "A" matches exactly one "A" in the target, for example.
+
+  Escape: "\"
+      The escape character starts a special sequence.  The
+      special characters listed in this pattern summary must be
+      escaped to be treated as literal character values
+      (including the escape character itself).  The letters "A",
+      "b", "B", "d", "D", "s", "S", "w", "W", and "Z" specify
+      special patterns if preceded by an escape.  The escape
+      character may also introduce a backreference group with up
+      to two decimal digits.  The escape is ignored if it
+      precedes a character with no special escaped meaning.
+      Since Python string escapes overlap regular expression
+      escapes, it is usually better to use raw strings for
+      regular expressions that potentially include escapes.  For
+      example:
+
+      >>> from re_show import re_show
+      >>> re_show(r'\$ \\ \^', r'\$ \\ \^ $ \ ^')
+      \$ \\ \^ {$ \ ^}
+
+      >>> re_show(r'\d \w', '7 a 6 # ! C')
+      {7 a} 6 # ! C
+
+  Grouping operators: "(", ")"
+      Parentheses surrounding any pattern turn that pattern into
+      a group (possibly within a larger pattern).  Quantifiers
+      refer to the immediately preceding group, if one is
+      defined, otherwise to the preceding character or character
+      class.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show(r'abc+', 'abcabc abc abccc')
+      {abc}{abc} {abc} {abccc}
+
+      >>> re_show(r'(abc)+', 'abcabc abc abccc')
+      {abcabc} {abc} {abc}cc
+
+  Backreference: "\d", "\dd"
+      A backreference consists of the escape character followed
+      by one or two decimal digits.  The first digit in a back
+      reference may not be a zero.  A backreference refers to
+      the same string matched by an earlier group, where
+      the enumeration of previous groups starts with 1.  For
+      example:
+
+      >>> from re_show import re_show
+      >>> re_show(r'([abc])(.*)\1', 'all the boys are coy')
+      {all the boys a}re coy
+
+      An attempt to reference an undefined group will raise an
+      error.
+
+  Character classes: "[", "]"
+      Specify a set of characters that may occur at a position.
+      The list of allowable characters may be enumerated with no
+      delimiter.  Predefined character classes, such as "\d", are
+      allowed within custom character classes.  A range of
+      characters may be indicated with a dash.  Multiple ranges
+      are allowed within a class.  If a dash is meant to be
+      included in the character class itself, it should occur as
+      the first listed character.  A character class may be
+      complemented by beginning it with a caret ("^").  If a
+      caret is meant to be included in the character class
+      itself, it should occur in a noninitial position.  Most
+      special characters, such as "$", ".", and "(", lose their
+      special meaning inside a character class and are merely
+      treated as class members.  The characters "]", "\", and
+      "'-'" should be escaped with a backslash, however.  For
+      example:
+
+      >>> from re_show import re_show
+      >>> re_show(r'[a-fA-F]', 'A X c G')
+      {A} X {c} G
+
+      >>> re_show(r'[-A$BC\]]', r'A X - \ ] [ $')
+      {A} X {-} \ {]} [ {$}
+
+      >>> re_show(r'[^A-Fa-f]', r'A X c G')
+      A{ }{X}{ }c{ }{G}
+
+  Digit character class: "\d"
+      The set of decimal digits.  Same as "[0-9]".
+
+  Non-digit character class: "\D"
+      The set of all characters -except- decimal digits.  Same as
+      "[^0-9]".
+
+  Alphanumeric character class: "\w"
+      The set of alphanumeric characters.  If re.LOCALE and
+      re.UNICODE modifiers are -not- set, this is the same as
+      [a-zA-Z0-9_].  Otherwise, the set includes any other
+      alphanumeric characters appropriate to the locale or with
+      an indicated Unicode character property of alphanumeric.
+
+  Non-alphanumeric character class: "\W"
+      The set of nonalphanumeric characters.  If re.LOCALE and
+      re.UNICODE modifiers are -not- set, this is the same as
+      [^a-zA-Z0-9_].  Otherwise, the set includes any other
+      characters not indicated by the locale or Unicode character
+      properties as alphanumeric.
+
+  Whitespace character class: "\s"
+      The set of whitespace characters.  Same as "[ \t\n\r\f\v]".
+
+  Non-whitespace character class: "\S"
+      The set of non-whitespace characters.  Same as
+      "[^ \t\n\r\f\v]".
+
+  Wildcard character: "."
+      The period matches any single character at a position.  If
+      the re.DOTALL modifier is specified, "." will match a
+      newline.  Otherwise, it will match anything other than a
+      newline.
+
+  Beginning of line: "^"
+      The caret will match the beginning of the target string.
+      If the re.MULTILINE modifier is specified, "^" will match
+      the beginning of each line within the target string.
+
+  Beginning of string: "\A"
+      The "\A" will match the beginning of the target string.
+      If the re.MULTILINE modifier is -not- specified, "\A"
+      behaves the same as "^".  But even if the modifier is
+      used, "\A" will match only the beginning of the entire
+      target.
+
+  End of line: "$"
+      The dollar sign will match the end of the target string.
+      If the re.MULTILINE modifier is specified, "$" will match
+      the end of each line within the target string.
+
+  End of string: "\Z"
+      The "\Z" will match the end of the target string.  If the
+      re.MULTILINE modifier is -not- specified, "\Z" behaves the
+      same as "$".  But even if the modifier is used, "\Z" will
+      match only the end of the entire target.
+
+  Word boundary: "\b"
+      The "\b" will match the beginning or end of a word (where a
+      word is defined as a sequence of alphanumeric characters
+      according to the current modifiers).  Like "^" and "$",
+      "\b" is a zero-width match.
+
+  Non-word boundary: "\B"
+      The "\B" will match any position that is -not- the
+      beginning or end of a word (where a word is defined as a
+      sequence of alphanumeric characters according to the
+      current modifiers).  Like "^" and "$", "\B" is a zero-width
+      match.
+
+  Alternation operator: "|"
+      The pipe symbol indicates a choice of multiple atoms in a
+      position.  Any of the atoms (including groups) separated by
+      a pipe will match.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show(r'A|c|G', r'A X c G')
+      {A} X {c} {G}
+
+      >>> re_show(r'(abc)|(xyz)', 'abc efg xyz lmn')
+      {abc} efg {xyz} lmn
+
+  QUANTIFIERS:
+
+  Universal quantifier: "*"
+      Match zero or more occurrences of the preceding atom.  The
+      "*" quantifier is happy to match an empty string.  For
+      example:
+
+      >>> from re_show import re_show
+      >>> re_show('a* ', ' a aa aaa aaaa b')
+      { }{a }{aa }{aaa }{aaaa }b
+
+  Non-greedy universal quantifier: "*?"
+      Match zero or more occurrences of the preceding atom, but
+      try to match as few occurrences as allowable.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show('<.*>', '<> <tag>Text</tag>')
+      {<> <tag>Text</tag>}
+
+      >>> re_show('<.*?>', '<> <tag>Text</tag>')
+      {<>} {<tag>}Text{</tag>}
+
+  Existential quantifier: "+"
+      Match one or more occurrences of the preceding atom.  A
+      pattern must actually occur in the target string to satisfy
+      the "+" quantifier.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show('a+ ', ' a aa aaa aaaa b')
+       {a }{aa }{aaa }{aaaa }b
+
+  Non-greedy existential quantifier: "+?"
+      Match one or more occurrences of the preceding atom, but
+      try to match as few occurrences as allowable.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show('<.+>', '<> <tag>Text</tag>')
+      {<> <tag>Text</tag>}
+
+      >>> re_show('<.+?>', '<> <tag>Text</tag>')
+      {<> <tag>}Text{</tag>}
+
+  Potentiality quantifier: "?"
+      Match zero or one occurrence of the preceding atom.  The
+      "?" quantifier is happy to match an empty string.  For
+      example:
+
+      >>> from re_show import re_show
+      >>> re_show('a? ', ' a aa aaa aaaa b')
+      { }{a }a{a }aa{a }aaa{a }b
+
+  Non-greedy potentiality quantifier: "??"
+      Match zero or one occurrences of the preceding atom, but
+      match zero if possible.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show(' a?', ' a aa aaa aaaa b')
+      { a}{ a}a{ a}aa{ a}aaa{ }b
+
+      >>> re_show(' a??', ' a aa aaa aaaa b')
+      { }a{ }aa{ }aaa{ }aaaa{ }b
+
+  Exact numeric quantifier: "{num}"
+      Match exactly 'num' occurrences of the preceding atom.  For
+      example:
+
+      >>> from re_show import re_show
+      >>> re_show('a{3} ', ' a aa aaa aaaa b')
+       a aa {aaa }a{aaa }b
+
+  Lower-bound quantifier: "{min,}"
+      Match -at least- 'min' occurrences of the preceding atom.
+      For example:
+
+      >>> from re_show import re_show
+      >>> re_show('a{3,} ', ' a aa aaa aaaa b')
+       a aa {aaa }{aaaa }b
+
+  Bounded numeric quantifier: "{min,max}"
+      Match -at least- 'min' and -no more than- 'max' occurrences
+      of the preceding atom.  For example:
+
+      >>> from re_show import re_show
+      >>> re_show('a{2,3} ', ' a aa aaa aaaa b')
+       a {aa }{aaa }a{aaa }
+
+  Non-greedy bounded quantifier: "{min,max}?"
+      Match -at least- 'min' and -no more than- 'max' occurrences
+      of the preceding atom, but try to match as few occurrences
+      as allowable.  Scanning is from the left, so a nonminimal
+      match may be produced in terms of right-side groupings.
+      For example:
+
+      >>> from re_show import re_show
+      >>> re_show(' a{2,4}?', ' a aa aaa aaaa b')
+       a{ aa}{ aa}a{ aa}aa b
+
+      >>> re_show('a{2,4}? ', ' a aa aaa aaaa b')
+       a {aa }{aaa }{aaaa }b
+
+  GROUP-LIKE PATTERNS:
+
+  Python regular expressions may contain a number of pseudo-group
+  elements that condition matches in some manner.  With the
+  exception of named groups, pseudo-groups are not counted in
+  backreferencing.  All pseudo-group patterns have the form
+  "(?...)".
+
+  Pattern modifiers: "(?Limsux)"
+      The pattern modifiers should occur at the very beginning of
+      a regular expression pattern.  One or more letters in the
+      set "Limsux" may be included.  If pattern modifiers are
+      given, the interpretation of the pattern is changed
+      globally.  See the discussion of modifier constants below
+      or the tutorial for details.
+
+  Comments: "(?#...)"
+      Create a comment inside a pattern.  The comment is not
+      enumerated in backreferences and has no effect on what is
+      matched.  In most cases, use of the "(?x)" modifier allows
+      for more clearly formatted comments than does "(?#...)".
+
+      >>> from re_show import re_show
+      >>> re_show(r'The(?#words in caps) Cat', 'The Cat in the Hat')
+      {The Cat} in the Hat
+
+  Non-backreferenced atom: "(?:...)"
+      Match the pattern "...", but do not include the matched
+      string as a backreferencable group.  Moreover, methods like
+      `re.match.group()` will not see the pattern inside
+      non-backreferenced atom.
+
+      >>> from re_show import re_show
+      >>> re_show(r'(?:\w+) (\w+).* \1', 'abc xyz xyz abc')
+      {abc xyz xyz} abc
+
+      >>> re_show(r'(\w+) (\w+).* \1', 'abc xyz xyz abc')
+      {abc xyz xyz abc}
+
+  Positive Lookahead assertion: "(?=...)"
+      Match the entire pattern only if the subpattern "..."
+      occurs next.  But do not include the target substring
+      matched by "..." as part of the match (however, some other
+      subpattern may claim the same characters, or some of them).
+
+      >>> from re_show import re_show
+      >>> re_show(r'\w+ (?=xyz)', 'abc xyz xyz abc')
+      {abc }{xyz }xyz abc
+
+  Negative Lookahead assertion: "(?!...)"
+      Match the entire pattern only if the subpattern "..." does
+      -not- occur next.
+
+      >>> from re_show import re_show
+      >>> re_show(r'\w+ (?!xyz)', 'abc xyz xyz abc')
+      abc xyz {xyz }abc
+
+  Positive Lookbehind assertion: "(?<=...)"
+      Match the rest of the entire pattern only if the subpattern
+      "..." occurs immediately prior to the current match point.
+      But do not include the target substring matched by "..." as
+      part of the match (the same characters may or may not be
+      claimed by some prior group(s) in the entire pattern).  The
+      pattern "..." must match a fixed number of characters and
+      therefore not contain general quantifiers.
+
+      >>> from re_show import re_show
+      >>> re_show(r'\w+(?<=[A-Z]) ', 'Words THAT end in capS X')
+      Words {THAT }end in {capS }X
+
+  Negative Lookbehind assertion: "(?<!...)"
+      Match the rest of the entire pattern only if the subpattern
+      "..." does -not- occur immediately prior to the current
+      match point.  The same characters may or may not be claimed
+      by some prior group(s) in the entire pattern.  The pattern
+      "..." must match a fixed number of characters, and
+      therefore not contain general quantifiers.
+
+      >>> from re_show import re_show
+      >>> re_show(r'\w+(?<![A-Z]) ', 'Words THAT end in capS X')
+      {Words }THAT {end }{in }capS X
+
+  Named group identifier: "(?P<name>)"
+      Create a group that can be referred to by the name 'name'
+      as well as in enumerated backreferences.  The forms below
+      are equivalent.
+
+      >>> from re_show import re_show
+      >>> re_show(r'(\w+) (\w+).* \1', 'abc xyz xyz abc')
+      {abc xyz xyz abc}
+
+      >>> re_show(r'(?P<first>\w+) (\w+).* (?P=first)', 'abc xyz xyz abc')
+      {abc xyz xyz abc}
+
+      >>> re_show(r'(?P<first>\w+) (\w+).* \1', 'abc xyz xyz abc')
+      {abc xyz xyz abc}
+
+  Named group backreference: "(?P=name)"
+      Backreference a group by the name 'name' rather than by
+      escaped group number.  The group name must have been
+      defined earlier by "(?P<name>)", or an error is raised.
+
+  CONSTANTS:
+
+  A number of constants are defined in the [re] modules that act
+  as modifiers to many [re] functions.  These constants are
+  independent bit-values, so that multiple modifiers may be
+  selected by bitwise disjunction of modifiers.  For example:
+
+    >>> import re
+    >>> c = re.compile('cat|dog', re.IGNORECASE | re.UNICODE)
+
+  re.I, re.IGNORECASE
+      Modifier for case-insensitive matching.  Lowercase and
+      uppercase letters are interchangeable in patterns modified
+      with this modifier.  The prefix '(?i)' may also be used
+      inside the pattern to achieve the same effect.
+
+  re.L, re.LOCALE
+      Modifier for locale-specific matching of '\w', '\W', '\b',
+      and '\B'.  The prefix '(?L)' may also be used inside the
+      pattern to achieve the same effect.
+
+  re.M, re.MULTILINE
+      Modifier to make '^' and '$' match the beginning and end,
+      respectively, of -each- line in the target string rather
+      than the beginning and end of the entire target string.
+      The prefix '(?m)' may also be used inside the pattern to
+      achieve the same effect.
+
+  re.S, re.DOTALL
+      Modifier to allow '.' to match a newline character.
+      Otherwise, '.' matches every character -except- newline
+      characters.  The prefix '(?s)' may also be used inside the
+      pattern to achieve the same effect.
+
+  re.U, re.UNICODE
+      Modifier for Unicode-property matching of '\w', '\W', '\b',
+      and '\B'.  Only relevant for Unicode targets.  The prefix
+      '(?u)' may also be used inside the pattern to achieve the
+      same effect.
+
+  re.X, re.VERBOSE
+      Modifier to allow patterns to contain insignificant
+      whitespace and end-of-line comments.  Can significantly
+      improve readability of patterns.  The prefix '(?x)' may
+      also be used inside the pattern to achieve the same effect.
+
+  re.engine
+      The regular expression engine currently in use.  Only
+      supported in Python 2.0+, where it normally is set to the
+      string 'sre'.  The presence and value of this constant can
+      be checked to make sure which underlying implementation is
+      running, but this check is rarely necessary.
+
+  FUNCTIONS:
+
+  For all [re] functions, where a regular expression pattern
+  'pattern' is an argument, 'pattern' may be either a compiled
+  regular expression or a string.
+
+  re.escape(s)
+      Return a string with all non-alphanumeric characters
+      escaped.  This (slightly scattershot) conversion makes an
+      arbitrary string suitable for use in a regular expression
+      pattern (matching all literals in original string).
+
+      >>> import re
+      >>> print re.escape("(*@&^$@|")
+      \(\*\@\&\^\$\@\|
+
+  re.findall(pattern=..., string=...)
+      Return a list of all nonoverlapping occurrences of
+      'pattern' in 'string'.  If 'pattern' consists of several
+      groups, return a list of tuples where each tuple contains a
+      match for each group.  Length-zero matches are included in
+      the returned list, if they occur.
+
+      >>> import re
+      >>> re.findall(r'\b[a-z]+\d+\b', 'abc123 xyz666 lmn-11 def77')
+      ['abc123', 'xyz666', 'def77']
+      >>> re.findall(r'\b([a-z]+)(\d+)\b', 'abc123 xyz666 lmn-11 def77')
+      [('abc', '123'), ('xyz', '666'), ('def', '77')]
+
+      SEE ALSO, `re.search()`, `mx.TextTools.findall()`
+
+  re.purge()
+      Clear the regular expression cache.  The [re] module keeps
+      a cache of implicitly compiled regular expression patterns.
+      The number of patterns cached differs between Python
+      versions, with more recent versions generally keeping 100
+      items in the cache.  When the cache space becomes full, it
+      is flushed automatically.  You could use `re.purge()` to
+      tune the timing of cache flushes.  However, such tuning is
+      approximate at best:  patterns that are used repeatedly are
+      much better off explicitly compiled with `re.compile()` and
+      then used explicitly as named objects.
+
+  re.split(pattern=..., string=... [,maxsplit=0])
+      Return a list of substrings of the second argument 'string'.
+      The first argument 'pattern' is a regular expression that
+      delimits the substrings.  If 'pattern' contains groups, the
+      groups are included in the resultant list.  Otherwise,
+      those substrings that match 'pattern' are dropped, and only
+      the substrings between occurrences of 'pattern' are
+      returned.
+
+      If the third argument 'maxsplit' is specified as a positive
+      integer, no more than 'maxsplit' items are parsed into the
+      list, with any leftover contained in the final list
+      element.
+
+      >>> import re
+      >>> re.split(r'\s+', 'The Cat in the Hat')
+      ['The', 'Cat', 'in', 'the', 'Hat']
+      >>> re.split(r'\s+', 'The Cat in the Hat', maxsplit=3)
+      ['The', 'Cat', 'in', 'the Hat']
+      >>> re.split(r'(\s+)', 'The Cat in the Hat')
+      ['The', ' ', 'Cat', ' ', 'in', ' ', 'the', ' ', 'Hat']
+      >>> re.split(r'(a)(t)', 'The Cat in the Hat')
+      ['The C', 'a', 't', ' in the H', 'a', 't', '']
+      >>> re.split(r'a(t)', 'The Cat in the Hat')
+      ['The C', 't', ' in the H', 't', '']
+
+      SEE ALSO, `string.split()`
+
+  re.sub(pattern=..., repl=..., string=... [,count=0])
+      Return the string produced by replacing every
+      nonoverlapping occurrence of the first argument 'pattern'
+      with the second argument 'repl' in the third argument
+      'string'.  If the fourth argument 'count' is specified, no
+      more than 'count' replacements will be made.
+
+      The second argument 'repl' is most often a regular
+      expression pattern as a string.  Backreferences to groups
+      matched by 'pattern' may be referred to by enumerated
+      backreferences using the usual escaped numbers.  If
+      backreferences in 'pattern' are named, they may also be
+      referred to using the form "\g<name>" (where 'name' is the
+      name given the group in 'pat').  As well, enumerated
+      backreferences may optionally be referred to using the
+      form "\g<num>", where 'num' is an integer between 1 and 99.
+      Some examples:
+
+      >>> import re
+      >>> s = 'abc123 xyz666 lmn-11 def77'
+      >>> re.sub(r'\b([a-z]+)(\d+)', r'\2\1 :', s)
+      '123abc : 666xyz : lmn-11 77def :'
+      >>> re.sub(r'\b(?P<lets>[a-z]+)(?P<nums>\d+)', r'\g<nums>\g<1> :', s)
+      '123abc : 666xyz : lmn-11 77def :'
+      >>> re.sub('A', 'X', 'AAAAAAAAAA', count=4)
+      'XXXXAAAAAA'
+
+      A variant manner of calling `re.sub()` uses a function
+      object as the second argument 'repl'.  Such a callback
+      function should take a MatchObject as an argument and
+      return a string.  The 'repl' function is invoked for each
+      match of 'pattern', and the string it returns is
+      substituted in the result for whatever 'pattern' matched.
+      For example:
+
+      >>> import re
+      >>> sub_cb = lambda pat: '('+`len(pat.group())`+')'+pat.group()
+      >>> re.sub(r'\w+', sub_cb, 'The length of each word')
+      '(3)The (6)length (2)of (4)each (4)word'
+
+      Of course, if 'repl' is a function object, you can take
+      advantage of side effects rather than (or instead of)
+      simply returning modified strings.  For example:
+
+      >>> import re
+      >>> def side_effects(match):
+      ...     # Arbitrarily complicated behavior could go here...
+      ...     print len(match.group()), match.group()
+      ...     return match.group()  # unchanged match
+      ...
+      >>> new = re.sub(r'\w+', side_effects, 'The length of each word')
+      3 The
+      6 length
+      2 of
+      4 each
+      4 word
+      >>> new
+      'The length of each word'
+
+      Variants on callbacks with side effects could be turned
+      into complete string-driven programs (in principle, a
+      parser and execution environment for a whole programming
+      language could be contained in the callback function, for
+      example).
+
+      SEE ALSO, `string.replace()`
+
+  re.subn(pattern=..., repl=..., string=... [,count=0])
+      Identical to `re.sub()`, except return a 2-tuple with the
+      new string and the number of replacements made.
+
+      >>> import re
+      >>> s = 'abc123 xyz666 lmn-11 def77'
+      >>> re.subn(r'\b([a-z]+)(\d+)', r'\2\1 :', s)
+      ('123abc : 666xyz : lmn-11 77def :', 3)
+
+      SEE ALSO, `re.sub()`
+
+  CLASS FACTORIES:
+
+  As with some other Python modules, primarily ones written in C,
+  [re] does not contain true classes that can be specialized.
+  Instead, [re] has several factory-functions that return
+  instance objects.  The practical difference is small for most
+  users, who will simply use the methods and attributes of
+  returned instances in the same manner as those produced by
+  true classes.
+
+  re.compile(pattern=... [,flags=...])
+      Return a PatternObject based on pattern string 'pattern'. If
+      the second argument 'flags' is specified, use the modifiers
+      indicated by 'flags'.  A PatternObject is interchangeable
+      with a pattern string as an argument to [re] functions.
+      However, a pattern that will be used frequently within an
+      application should be compiled in advance to assure that it
+      will not need recompilation during execution.  Moreover, a
+      compiled PatternObject has a number of methods and
+      attributes that achieve effects equivalent to [re]
+      functions, but which are somewhat more readable in some
+      contexts.  For example:
+
+      >>> import re
+          >>> word = re.compile('[A-Za-z]+')
+      >>> word.findall('The Cat in the Hat')
+      ['The', 'Cat', 'in', 'the', 'Hat']
+      >>> re.findall(word, 'The Cat in the Hat')
+      ['The', 'Cat', 'in', 'the', 'Hat']
+
+  re.match(pattern=..., string=... [,flags=...])
+      Return a MatchObject if an initial substring of the second
+      argument 'string' matches the pattern in the first argument
+      'pattern'.  Otherwise return None.  A MatchObject, if
+      returned, has a variety of methods and attributes to
+      manipulate the matched pattern--but notably a MatchObject
+      is -not- itself a string.
+
+      Since `re.match()` only matches initial substrings,
+      `re.search()` is more general.  `re.search()` can be
+      constrained to itself match only initial substrings by
+      prepending "\A" to the pattern matched.
+
+      SEE ALSO, `re.search()`, `re.compile.match()`
+
+  re.search(pattern=..., string=... [,flags=...])
+      Return a MatchObject corresponding to the leftmost
+      substring of the second argument 'string' that matches the
+      pattern in the first argument 'pattern'.  If no match is
+      possible, return None.  A matched string can be of zero
+      length if the pattern allows that (usually not what is
+      actually desired).  A MatchObject, if returned, has a
+      variety of methods and attributes to manipulate the matched
+      pattern--but notably a MatchObject is -not- itself a
+      string.
+
+      SEE ALSO, `re.match()`, `re.compile.search()`
+
+  METHODS AND ATTRIBUTES:
+
+  re.compile.findall(s)
+      Return a list of nonoverlapping occurrences of the
+      PatternObject in 's'.  Same as 're.findall()' called with
+      the PatternObject.
+
+      SEE ALSO `re.findall()`
+
+  re.compile.flags
+      The numeric sum of the flags passed to `re.compile()`
+      in creating the PatternObject.  No formal guarantee is
+      given by Python as to the values assigned to modifier
+      flags, however.  For example:
+
+      >>> import re
+      >>> re.I,re.L,re.M,re.S,re.X
+      (2, 4, 8, 16, 64)
+      >>> c = re.compile('a', re.I | re.M)
+      >>> c.flags
+      10
+
+  re.compile.groupindex
+      A dictionary mapping group names to group numbers.  If no
+      named groups are used in the pattern, the dictionary is
+      empty.  For example:
+
+      >>> import re
+      >>> c = re.compile(r'(\d+)(\[A-Z]+)([a-z]+)')
+      >>> c.groupindex
+      {}
+      >>> c =
+      re.compile(r'(?P<nums>\d+)(?P<caps>\[A-Z]+)(?P<lowers>[a-z]+)')
+      >>> c.groupindex
+      {'nums': 1, 'caps': 2, 'lowers': 3}
+
+  re.compile.match(s [,start [,end]])
+      Return a MatchObject if an initial substring of the first
+      argument 's' matches the PatternObject.  Otherwise, return
+      None.  A MatchObject, if returned, has a variety of methods
+      and attributes to manipulate the matched pattern--but
+      notably a MatchObject is -not- itself a string.
+
+      In contrast to the similar function `re.match()`, this
+      method accepts optional second and third arguments 'start'
+      and 'end' that limit the match to substring within 's'.
+      In most respects specifying 'start' and 'end' is similar to
+      taking a slice of 's' as the first argument.  But when
+      'start' and 'end' are used, "^" will only match the true
+      start of 's'.  For example:
+
+      >>> import re
+      >>> s = 'abcdefg'
+      >>> c = re.compile('^b')
+      >>> print c.match(s, 1)
+      None
+      >>> c.match(s[1:])
+      <SRE_Match object at 0x10c440>
+      >>> c = re.compile('.*f$')
+      >>> c.match(s[:-1])
+      <SRE_Match object at 0x116d80>
+      >>> c.match(s,1,6)
+      <SRE_Match object at 0x10c440>
+
+      SEE ALSO, `re.match()`, `re.compile.search()`
+
+  re.compile.pattern
+      The pattern string underlying the compiled MatchObject.
+
+      >>> import re
+      >>> c = re.compile('^abc$')
+      >>> c.pattern
+      '^abc$'
+
+  re.compile.search(s [,start [,end]])
+      Return a MatchObject corresponding to the leftmost
+      substring of the first argument 'string' that matches the
+      PatternObject.  If no match is possible, return None.  A
+      matched string can be of zero length if the pattern allows
+      that (usually not what is actually desired).  A
+      MatchObject, if returned, has a variety of methods and
+      attributes to manipulate the matched pattern--but notably a
+      MatchObject is -not- itself a string.
+
+      In contrast to the similar function `re.search()`, this
+      method accepts optional second and third arguments 'start'
+      and 'end' that limit the match to a substring within 's'.
+      In most respects specifying 'start' and 'end' is similar to
+      taking a slice of 's' as the first argument.  But when
+      'start' and 'end' are used, "^" will only match the true
+      start of 's'.  For example:
+
+      >>> import re
+      >>> s = 'abcdefg'
+      >>> c = re.compile('^b')
+      >>> c = re.compile('^b')
+      >>> print c.search(s, 1),c.search(s[1:])
+      None <SRE_Match object at 0x117980>
+      >>> c = re.compile('.*f$')
+      >>> print c.search(s[:-1]),c.search(s,1,6)
+      <SRE_Match object at 0x51040> <SRE_Match object at 0x51040>
+
+      SEE ALSO, `re.search()`, `re.compile.match()`
+
+  re.compile.split(s [,maxsplit])
+      Return a list of substrings of the first argument 's'.  If
+      thePatternObject contains groups, the groups are included
+      in the resultant list.  Otherwise, those substrings that
+      match PatternObject are dropped, and only the substrings
+      between occurrences of 'pattern' are returned.
+
+      If the second argument 'maxsplit' is specified as a
+      positive integer, no more than 'maxsplit' items are parsed
+      into the list, with any leftover contained in the final
+      list element.
+
+      `re.compile.split()` is identical in behavior to
+      `re.split()`, simply spelled slightly differently.  See the
+      documentation of the latter for examples of usage.
+
+      SEE ALSO, `re.split()`
+
+  re.compile.sub(repl, s [,count=0])
+      Return the string produced by replacing every
+      nonoverlapping occurrence of the PatternObject with the
+      first argument 'repl' in the second argument 'string'.  If
+      the third argument 'count' is specified, no more than
+      'count' replacements will be made.
+
+      The first argument 'repl' may be either a regular
+      expression pattern as a string or a callback function.
+      Backreferences may be named or enumerated.
+
+      `re.compile.sub()` is identical in behavior to `re.sub()`,
+      simply spelled slightly differently.  See the documentation
+      of the latter for a number of examples of usage.
+
+      SEE ALSO, `re.sub()`, `re.compile.subn()`
+
+  re.compile.subn()
+      Identical to `re.compile.sub()`, except return a 2-tuple
+      with the new string and the number of replacements made.
+
+      `re.compile.subn()` is identical in behavior to
+      `re.subn()`, simply spelled slightly differently.  See the
+      documentation of the latter for examples of usage.
+
+      SEE ALSO, `re.subn()`, `re.compile.sub()`
+
+  Note:  The arguments to each "MatchObject" method are listed on
+  the `re.match()` line, with ellipses given on the `re.search()`
+  line.  All arguments are identical since `re.match()` and
+  `re.search()` return the very same type of object.
+
+  re.match.end([group])
+  re.search.end(...)
+      The index of the end of the target substring matched by the
+      MatchObject.  If the argument 'group' is specified, return
+      the ending index of that specific enumerated group.
+      Otherwise, return the ending index of group 0 (i.e., the
+      whole match). If 'group' exists but is the part of an
+      alternation operator that is not used in the current
+      match, return -1. If `re.search.end()` returns the same
+      non-negative value as `re.search.start()`, then 'group' is
+      a zero-width substring.
+
+      >>> import re
+      >>> m = re.search('(\w+)((\d*)| )(\w+)','The Cat in the Hat')
+      >>> m.groups()
+      ('The', ' ', None, 'Cat')
+      >>> m.end(0), m.end(1), m.end(2), m.end(3), m.end(4)
+      (7, 3, 4, -1, 7)
+
+  re.match.endpos, re.search.endpos
+      The end position of the search.  If `re.compile.search()`
+      specified an 'end' argument, this is the value, otherwise
+      it is the length of the target string.  If `re.search()` or
+      `re.match()` are used for the search, the value is always
+      the length of the target string.
+
+      SEE ALSO, `re.compile.search()`, `re.search()`, `re.match()`
+
+  re.match.expand(template)
+  re.search.expand(...)
+      Expand backreferences and escapes in the argument 'template'
+      based on the patterns matched by the MatchObject.  The
+      expansion rules are the same as for the 'repl' argument to
+      `re.sub()`.  Any nonescaped characters may also be
+      included as part of the resultant string.  For example:
+
+      >>> import re
+      >>> m = re.search('(\w+) (\w+)','The Cat in the Hat')
+      >>> m.expand(r'\g<2> : \1')
+      'Cat : The'
+
+  re.match.group([group [,...]])
+  re.search.group(...)
+      Return a group or groups from the MatchObject.  If no
+      arguments are specified, return the entire matched
+      substring.  If one argument 'group' is specified, return
+      the corresponding substring of the target string.  If
+      multiple arguments 'group1, group2, ...' are specified,
+      return a tuple of corresponding substrings of the target.
+
+      >>> import re
+      >>> m = re.search(r'(\w+)(/)(\d+)','abc/123')
+      >>> m.group()
+      'abc/123'
+      >>> m.group(1)
+      'abc'
+      >>> m.group(1,3)
+      ('abc', '123')
+
+      SEE ALSO, `re.search.groups()`, `re.search.groupdict()`
+
+  re.match.groupdict([defval])
+  re.search.groupdict(...)
+      Return a dictionary whose keys are the named groups in the
+      pattern used for the match.  Enumerated but unnamed groups
+      are not included in the returned dictionary.  The values of
+      the dictionary are the substrings matched by each group in
+      the MatchObject.  If a named group is part of an
+      alternation operator that is not used in the current match,
+      the value corresponding to that key is None, or 'defval' if
+      an argument is specified.
+
+      >>> import re
+      >>> m = re.search(r'(?P<one>\w+)((?P<tab>\t)|( ))(?P<two>\d+)','abc 123')
+      >>> m.groupdict()
+      {'one': 'abc', 'tab': None, 'two': '123'}
+      >>> m.groupdict('---')
+      {'one': 'abc', 'tab': '---', 'two': '123'}
+
+      SEE ALSO, `re.search.groups()`
+
+  re.match.groups([defval])
+  re.search.groups(...)
+      Return a tuple of the substrings matched by groups in the
+      MatchObject.  If a group is part of an alternation operator
+      that is not used in the current match, the tuple element at
+      that index is None, or 'defval' if an argument is
+      specified.
+
+      >>> import re
+      >>> m = re.search(r'(\w+)((\t)|(/))(\d+)','abc/123')
+      >>> m.groups()
+      ('abc', '/', None, '/', '123')
+      >>> m.groups('---')
+      ('abc', '/', '---', '/', '123')
+
+      SEE ALSO, `re.search.group()`, `re.search.groupdict()`
+
+  re.match.lastgroup, re.search.lastgroup
+      The name of the last matching group, or None if the last
+      group is not named or if no groups compose the match.
+
+  re.match.lastindex, re.search.lastindex
+      The index of the last matching group, or None if no groups
+      compose the match.
+
+  re.match.pos, re.search.pos
+      The start position of the search.  If `re.compile.search()`
+      specified a 'start' argument, this is the value, otherwise
+      it is 0.  If `re.search()` or `re.match()` are used for the
+      search, the value is always 0.
+
+      SEE ALSO, `re.compile.search()`, `re.search()`, `re.match()`
+
+  re.match.re, re.search.re
+      The PatternObject used to produce the match.  The actual
+      regular expression pattern string must be retrieved from
+      the PatternObject's 'pattern' method:
+
+      >>> import re
+      >>> m = re.search('a','The Cat in the Hat')
+      >>> m.re.pattern
+      'a'
+
+  re.match.span([group])
+  re.search.span(...)
+      Return the tuple composed of the return values of
+      're.search.start(group)' and 're.search.end(group)'.  If
+      the argument 'group' is not specified, it defaults to 0.
+
+      >>> import re
+      >>> m = re.search('(\w+)((\d*)| )(\w+)','The Cat in the Hat')
+      >>> m.groups()
+      ('The', ' ', None, 'Cat')
+      >>> m.span(0), m.span(1), m.span(2), m.span(3), m.span(4)
+      ((0, 7), (0, 3), (3, 4), (-1, -1), (4, 7))
+
+  re.match.start([group])
+  re.search.start(...)
+      The index of the end of the target substring matched by the
+      MatchObject.  If the argument 'group' is specified, return
+      the ending index of that specific enumerated group.
+      Otherwise, return the ending index of group 0 (i.e., the
+      whole match). If 'group' exists but is the part of an
+      alternation operator that is not used in the current
+      match, return -1. If `re.search.end()` returns the same
+      non-negative value as `re.search.start()`, then 'group' is
+      a zero-width substring.
+
+      >>> import re
+      >>> m = re.search('(\w+)((\d*)| )(\w+)','The Cat in the Hat')
+      >>> m.groups()
+      ('The', ' ', None, 'Cat')
+      >>> m.start(0), m.start(1), m.start(2), m.start(3), m.start(4)
+      (0, 0, 3, -1, 4)
+
+  re.match.string, re.search.string
+      The target string in which the match occurs.
+
+      >>> import re
+      >>> m = re.search('a','The Cat in the Hat')
+      >>> m.string
+      'The Cat in the Hat'
+
+  EXCEPTIONS:
+
+  re.error
+      Exception raised when an invalid regular expression string
+      is passed to a function that would produce a compiled
+      regular expression (including implicitly).
+

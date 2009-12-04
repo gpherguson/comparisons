@@ -1,0 +1,3923 @@
+CHAPTER V -- INTERNET TOOLS AND TECHNIQUES
+-------------------------------------------------------------------
+
+    Be strict in what you send, and lenient in what you accept.
+      -- Internet Engineering Task Force
+
+  Internet protocols in large measure are descriptions of textual
+  formats. At the lowest level, TCP/IP is a binary protocol, but
+  virtually every layer run on top of TCP/IP consists of textual
+  messages exchanged between servers and clients. Some basic
+  messages govern control, handshaking, and authentication issues,
+  but the information content of the Internet predominantly
+  consists of texts formatted according to two or three general
+  patterns.
+
+  The handshaking and control aspects of Internet protocols usually
+  consist of short commands--and sometimes challenges--sent during
+  an initial conversation between a client and server. Fortunately
+  for Python programmers, the Python standard library contains
+  intermediate-level modules to support all the most popular
+  communication protocols: [poplib], [smtplib], [ftplib],
+  [httplib], [telnetlib], [gopherlib], and [imaplib]. If you want
+  to use any of these protocols, you can simply provide required
+  setup information, then call module functions or classes to
+  handle all the lower-level interaction. Unless you want to do
+  something exotic--such as programming a custom or less common
+  network protocol--there is never a need to utilize the
+  lower-level services of the [socket] module.
+
+  The communication level of Internet protocols is not primarily a
+  text processing issue. Where text processing comes in is with
+  parsing and production of compliant texts, to contain the
+  -content- of these protocols. Each protocol is characterized by
+  one or a few message types that are typically transmitted over
+  the protocol. For example, POP3, NNTP, IMAP4, and SMTP protocols
+  are centrally means of transmitting texts that conform to
+  RFC-822, its updates, and associated RFCs. HTTP is firstly a
+  means of transmitting Hypertext Markup Language (HTML) messages.
+  Following the popularity of the World Wide Web, however, a
+  dizzying array of other message types also travel over HTTP:
+  graphic and sounds formats, proprietary multimedia plug-ins,
+  executable byte-codes (e.g., Java or Jython), and also more
+  textual formats like XML-RPC and SOAP.
+
+  The most widespread text format on the Internet is almost
+  certainly human-readable and human-composed notes that follow
+  RFC-822 and friends. The basic form of such a text is a series of
+  headers, each beginning a line and separated from a value by a
+  colon; after a header comes a blank line; and after that a
+  message body. In the simplest case, a message body is just
+  free-form text; but MIME headers can be used to nest structured
+  and diverse contents within a message body. Email and (Usenet)
+  discussion groups follow this format. Even other protocols, like
+  HTTP, share a top envelope structure with RFC-822.
+
+  A strong second as Internet text formats go is HTML. And in third
+  place after that is XML, in various dialects. HTML, of course, is
+  the lingua franca of the Web; XML is a more general standard for
+  defining custom "applications" or "dialects," of which HTML is
+  (almost) one. In either case, rather than a header composed of
+  line-oriented fields followed by a body, HTML/XML contain
+  hierarchically nested "tags" with each tag indicated by
+  surrounding angle brackets. Tags like HTML's '<body>', '<cite>',
+  and '<blockquote>' will be familiar already to most readers of
+  this book. In any case, Python has a strong collection of tools
+  in its standard library for parsing and producing HTML and XML
+  text documents. In the case of XML, some of these tools assist
+  with specific XML dialects, while lower-level underlying
+  libraries treat XML sui generis. In some cases, third-party
+  modules fill gaps in the standard library.
+
+  Various Python Internet modules are covered in varying depth in
+  this chapter. Every tool that comes with the Python standard
+  library is examined at least in summary. Those tools that I feel
+  are of greatest importance to application programmers (in text
+  processing applications) are documented in fair detail and
+  accompanied by usage examples, warnings, and tips.
+
+
+SECTION 1 -- Working with Email and Newsgroups
+------------------------------------------------------------------------
+
+  Python provides extensive support in its standard library for
+  working with email (and newsgroup) messages.  There are three
+  general aspects to working with email, each supported by one or
+  more Python modules.
+
+  1.  Communicating with network servers to actually transmit
+      and receive messages. The modules [poplib], [imaplib],
+      [smtplib], and [nntplib] each address the protocol
+      contained in its name. These tasks do not have a lot to do
+      with text processing per se, but are often important for
+      applications that deal with email. The discussion of each
+      of these modules is incomplete, addressing only those
+      methods necessary to conduct basic transactions in the
+      case of the first three modules/protocols. The module
+      [nntplib] is not documented here under the assumption that
+      email is more likely to be automatically processed than
+      are Usenet articles. Indeed, robot newsgroup posters are
+      almost always frowned upon, while automated mailing is
+      frequently desirable (within limits).
+
+  2.  Examining the contents of message folders.  Various email
+      and news clients store messages in a variety of formats,
+      many providing hierarchical and structured folders.  The
+      module [mailbox] provides a uniform API for reading the
+      messages stored in all the most popular folder formats.
+      In a way, [imaplib] serves an overlapping purpose, insofar
+      as an IMAP4 server can also structure folder, but folder
+      manipulation with IMAP4 is discussed only cursorily--that
+      topic also falls afield of text processing.  However,
+      local mailbox folders are definitely text formats, and
+      [mailbox] makes manipulating them a lot easier.
+
+  3.  The core text processing task in working with email is
+      parsing, modifying, and creating the actual messages.
+      RFC-822 describes a format for email messages and is the
+      lingua franca for Internet communication.  Not every
+      Mail User Agent (MUA) and Mail Transport Agent (MTA)
+      strictly conforms to the RFC-822 (and
+      superset/clarification RFC-2822) standard--but they all
+      generally try to do so.  The newer [email] package and the
+      older [rfc822], [rfc1822], [mimify], [mimetools],
+      [MimeWriter], and [multifile] modules all deal with
+      parsing and processing email messages.
+
+  Although existing applications are likely to use [rfc822],
+  [mimify], [mimetools], [MimeWriter], and [multifile], the
+  package [email] contains more up-to-date and better-designed
+  implementations of the same capabilities.  The former modules
+  are discussed only in synopsis while the various subpackages of
+  [email] are documented in detail.
+
+  There is one aspect of working with email that all good-hearted
+  people wish was unnecessary.  Unfortunately, in the real-world,
+  a large percentage of email is spam, viruses, and frauds; any
+  application that works with collections of messages practically
+  demands a way to filter out the junk messages.  While this
+  topic generally falls outside the scope of this discussion,
+  readers might benefit from my article, "Spam Filtering
+  Techniques," at:
+
+    <http://gnosis.cx/publish/programming/filtering-spam.html>.
+
+  A flexible Python project for statistical analysis of message
+  corpora, based on naive Bayesian and related models, is
+  SpamBayes:
+
+    <http://spambayes.sourceforge.net/>
+
+
+  TOPIC --  Manipulating and Creating Message Texts
+  --------------------------------------------------------------------
+
+  =================================================================
+    PACKAGE -- email : Work with email messages
+  =================================================================
+
+  Without repeating the whole of RFC-2822, it is worth mentioning
+  the basic structure of an email or newsgroup message. Messages
+  may themselves be stored in larger text files that impose
+  larger-level structure, but here we are concerned with the
+  structure of a single message. An RFC-2822 message, like most
+  Internet protocols, has a textual format, often restricted to
+  true 7-bit ASCII.
+
+  A message consists of a header and a body. A body in turn can
+  contain one or more "payloads." In fact, MIME 'multipart/*' type
+  payloads can themselves contain nested payloads, but such nesting
+  is comparatively unusual in practice. In textual terms, each
+  payload in a body is divided by a simple, but fairly long,
+  delimiter; however, the delimiter is pseudo-random, and you need
+  to examine the header to find it. A given payload can either
+  contain text or binary data using base64, quoted printable, or
+  another ASCII encoding (even 8-bit, which is not generally safe
+  across the Internet). Text payloads may either have MIME type
+  'text/*' or compose the whole of a message body (without any
+  payload delimiter).
+
+  An RFC-2822 header consists of a series of fields. Each field
+  name begins at the beginning of a line and is followed by a colon
+  and a space. The field value comes after the field name, starting
+  on the same line, but potentially spanning subsequence lines. A
+  continued field value cannot be left aligned, but must instead be
+  indented with at least one space or tab. There are some
+  moderately complicated rules about when field contents can split
+  between lines, often dependent upon the particular type of value
+  a field holds. Most field names occur only once in a header (or
+  not at all), and in those cases their order of occurrence is not
+  important to email or news applications. However, a few field
+  names--notably 'Received'--typically occur multiple times and in
+  a significant order. Complicating headers further, field values
+  can contain encoded strings from outside the ASCII character set.
+
+  The most important element of the [email] package is the class
+  `email.Message.Message`, whose instances provide a data
+  structure and convenience methods suited to the generic
+  structure of RFC-2822 messages.  Various capabilities for
+  dealing with different parts of a message, and for parsing a
+  whole message into an `email.Message.Message` object, are
+  contained in subpackages of the [email] package.  Some of the
+  most common facilities are wrapped in convenience functions in
+  the top-level namespace.
+
+  A version of the [email] package was introduced into the standard
+  library with Python 2.1. However, [email] has been independently
+  upgraded and developed between Python releases. At the time this
+  chapter was written, the current release of [email] was 2.4.3,
+  and this discussion reflects that version (and those API details
+  that the author thinks are most likely to remain consistent in
+  later versions). I recommend that, rather than simply use the
+  version accompanying your Python installation, you download the
+  latest version of the [email] package from
+  <http://mimelib.sourceforge.net> if you intend to use this
+  package. The current (and expected future) version of the [email]
+  package is directly compatible with Python versions back to 2.1.
+  See this book's Web site, <http://gnosis.cx/TPiP/>, for
+  instructions on using [email] with Python 2.0. The package is
+  incompatible with versions of Python before 2.0.
+
+  CLASSES:
+
+  Several children of `email.Message.Message` allow you to easily
+  construct message objects with special properties and
+  convenient initialization arguments.  Each such class is
+  technically contained in a module named in the same way as the
+  class rather than directly in the [email] namespace, but each
+  is very similar to the others.
+
+  email.MIMEBase.MIMEBase(maintype, subtype, **params)
+      Construct a message object with a 'Content-Type' header
+      already built.  Generally this class is used only as a
+      parent for further subclasses, but you may use it directly
+      if you wish:
+
+      >>> mess = email.MIMEBase.MIMEBase('text','html',charset='us-ascii')
+      >>> print mess
+      From nobody Tue Nov 12 03:32:33 2002
+      Content-Type: text/html; charset="us-ascii"
+      MIME-Version: 1.0
+
+  email.MIMENonMultipart.MIMENonMultipart(maintype, subtype, **params)
+      Child of `email.MIMEBase.MIMEBase`, but raises
+      'MultipartConversionError' on calls to '.attach()'.
+      Generally this class is used for further subclassing.
+
+  email.MIMEMultipart.MIMEMultipart([subtype="mixed" [boundary,
+    -¯                               [,*subparts [,**params]]]])
+      Construct a multipart message object with subtype
+      'subtype'.  You may optionally specify a boundary with the
+      argument 'boundary', but specifying 'None' will cause a
+      unique boundary to be calculated.  If you wish to populate
+      the message with payload object, specify them as additional
+      arguments.  Keyword arguments are taken as parameters to
+      the 'Content-Type' header.
+
+      >>> from email.MIMEBase import MIMEBase
+      >>> from email.MIMEMultipart import MIMEMultipart
+      >>> mess = MIMEBase('audio','midi')
+      >>> combo = MIMEMultipart('mixed', None, mess, charset='utf-8')
+      >>> print combo
+      From nobody Tue Nov 12 03:50:50 2002
+      Content-Type: multipart/mixed; charset="utf-8";
+              boundary="===============5954819931142521=="
+      MIME-Version: 1.0
+      
+      --===============5954819931142521==
+      Content-Type: audio/midi
+      MIME-Version: 1.0
+      
+      --===============5954819931142521==--
+
+  email.MIMEAudio.MIMEAudio(audiodata [,subtype [,encoder [,**params]]])
+      Construct a single part message object that holds audio
+      data.  The audio data stream is specified as a string in
+      the argument 'audiodata'.  The Python standard library
+      module [sndhdr] is used to detect the signature of the
+      audio subtype, but you may explicitly specify the argument
+      'subtype' instead.  An encoder other than base64 may be
+      specified with the 'encoder' argument (but usually should
+      not be).  Keyword arguments are taken as parameters to the
+      'Content-Type' header.
+
+      >>> from email.MIMEAudio import MIMEAudio
+      >>> mess = MIMEAudio(open('melody.midi').read())
+
+      SEE ALSO, `sndhdr`
+
+  email.MIMEImage.MIMEImage(imagedata [,subtype [,encoder [,**params]]])
+      Construct a single part message object that holds image
+      data.  The image data is specified as a string in the
+      argument 'imagedata'.  The Python standard library module
+      [imghdr] is used to detect the signature of the image
+      subtype, but you may explicitly specify the argument
+      'subtype' instead.  An encoder other than base64 may be
+      specified with the 'encoder' argument (but usually should
+      not be).  Keyword arguments are taken as parameters to the
+      'Content-Type' header.
+
+      >>> from email.MIMEImage import MIMEImage
+      >>> mess = MIMEImage(open('landscape.png').read())
+
+      SEE ALSO, `imghdr`
+
+  email.MIMEText.MIMEText(text [,subtype [,charset]])
+      Construct a single part message object that holds text
+      data.  The  data is specified as a string in the argument
+      'text'.  A character set may be specified in the 'charset'
+      argument:
+
+      >>> from email.MIMEText import MIMEText
+      >>> mess = MIMEText(open('TPiP.tex').read(),'latex')
+
+  FUNCTIONS:
+
+  email.message_from_file(file [,_class=email.Message.Message [,strict=0]])
+      Return a message object based on the message text contained
+      in the file-like object 'file'.  This function call is
+      exactly equivalent to:
+
+      #*---------------- Underlying constructor ----------------#
+      email.Parser.Parser(_class, strict).parse(file)
+
+      SEE ALSO, `email.Parser.Parser.parse()`
+
+  email.message_from_string(s [,_class=email.Message.Message [,strict=0]])
+      Return a message object based on the message text contained
+      in the string 's'.  This function call is exactly equivalent
+      to:
+
+      #*---------------- Underlying constructor ----------------#
+      email.Parser.Parser(_class, strict).parsestr(file)
+
+      SEE ALSO, `email.Parser.Parser.parsestr()`
+
+  =================================================================
+    MODULE -- email.Encoders : Encoding message payloads
+  =================================================================
+
+  The module [email.Encoder] contains several functions to encode
+  message bodies of single part message objects. Each of these
+  functions sets the 'Content-Transfer-Encoding' header to an
+  appropriate value after encoding the body. The 'decode' argument
+  of the '.get_payload()' message method can be used to retrieve
+  unencoded text bodies.
+
+  FUNCTIONS:
+
+  email.Encoders.encode_quopri(mess)
+      Encode the message body of message object 'mess' using
+      quoted printable encoding.  Also sets the header
+      'Content-Transfer-Encoding'.
+
+  email.Encoders.encode_base64(mess)
+      Encode the message body of message object 'mess' using base64
+      encoding.  Also sets the header 'Content-Transfer-Encoding'.
+
+  email.Encoders.encode_7or8bit(mess)
+      Set the 'Content-Transfer-Encoding' to '7bit' or '8bit'
+      based on the message payload; does not modify the payload
+      itself.  If 'mess' already has a 'Content-Transfer-Encoding'
+      header, calling this will create a second one--it is
+      probably best to delete the old one before calling this
+      function.
+
+  SEE ALSO, `email.Message.Message.get_payload()`, [quopri], [base64]
+
+  =================================================================
+    MODULE -- email.Errors : Exceptions for [email] package
+  =================================================================
+
+  Exceptions within the [email] package will raise specific
+  errors and may be caught at the desired level of generality.
+  The exception hierarchy of [email.Errors] is shown in Figure
+  5.1.
+
+      #----- Standard email.Errors exceptions -----#
+      <<email_exception_hierarchy.eps>>
+
+  SEE ALSO, [exceptions]
+
+  =================================================================
+    MODULE -- email.Generator : Create text representation of messages
+  =================================================================
+
+  The module [email.Generator] provides support for the
+  serialization of `email.Message.Message` objects. In principle,
+  you could create other tools to output message objects to
+  specialized formats--for example, you might use the fields of an
+  `email.Message.Message` object to store values to an XML format
+  or to an RDBMS. But in practice, you almost always want to write
+  message objects to standards-compliant RFC-2822 message texts.
+  Several of the methods of `email.Message.Message` automatically
+  utilize [email.Generator].
+
+  CLASSES:
+
+  email.Generator.Generator(file [,mangle_from_=1 [,maxheaderlen=78]])
+      Construct a generator instance that writes to the file-like
+      object 'file'.  If the argument 'mangle_from_' is specified
+      as a true value, any occurrence of a line in the body that
+      begins with the string 'From' followed by a space is
+      prepended with '>'.  This (nonreversible) transformation
+      prevents BSD mailboxes from being parsed incorrectly.  The
+      argument 'maxheaderlen' specifies where long headers will
+      be split into multiple lines (if such is possible).
+
+  email.Generator.DecodedGenerator(file [,mangle_from_ [,maxheaderlen [,fmt]]])
+      Construct a generator instance that writes RFC-2822
+      messages.  This class has the same initializers as its
+      parent `email.Generator.Generator`, with the addition of an
+      optional argument 'fmt'.
+
+      The class `email.Generator.DecodedGenerator` only writes
+      out the contents of 'text/*' parts of a multipart message
+      payload.  Nontext parts are replaced with the string
+      'fmt', which may contain keyword replacement values.  For
+      example, the default value of 'fmt' is:
+
+      #*--------------- Default 'fmt' string ------------------#
+      [Non-text (%(type)s) part of message omitted, filename %(filename)s]
+
+      Any of the keywords 'type', 'maintype', 'subtype',
+      'filename', 'description', or 'encoding' may be used as
+      keyword replacements in the string 'fmt'.  If any of these
+      values is undefined by the payload, a simple description
+      of its unavailability is substituted.
+
+  METHODS:
+
+  email.Generator.Generator.clone()
+  email.Generator.DecodedGenerator.clone()
+      Return a copy of the instance with the same options.
+
+  email.Generator.Generator.flatten(mess [,unixfrom=0])
+  email.Generator.DecodedGenerator.flatten(mess [,unixfrom=0])
+      Write an RFC-2822 serialization of message object 'mess' to
+      the file-like object the instance was initialized with.  If
+      the argument 'unixfrom' is specified as a true value, the
+      BSD mailbox 'From_' header is included in the
+      serialization.
+
+  email.Generator.Generator.write(s)
+  email.Generator.DecodedGenerator.write(s)
+      Write the string 's' to the file-like object the instance
+      was initialized with.  This lets a generator object itself
+      act in a file-like manner, as an implementation
+      convenience.
+
+  SEE ALSO, [email.Message], [mailbox]
+
+  =================================================================
+    MODULE -- email.Header : Manage headers with non-ASCII values
+  =================================================================
+
+  The module [email.Charset] provides fine-tuned capabilities for
+  managing character set conversions and maintaining a character
+  set registry. The much higher-level interface provided by
+  [email.Header] provides all the capabilities that almost all
+  users need in a friendlier form.
+
+  The basic reason why you might want to use the [email.Header]
+  module is because you want to encode multinational (or at least
+  non-US) strings in email headers. Message bodies are somewhat
+  more lenient than headers, but RFC-2822 headers are still
+  restricted to using only 7-bit ASCII to encode other character
+  sets. The module [email.Header] provides a single class and two
+  convenience functions. The encoding of non-ASCII characters in
+  email headers is described in a number of RFCs, including
+  RFC-2045, RFC-2046, RFC-2047, and most directly RFC-2231.
+
+  CLASSES:
+
+  email.Header.Header([s="" [,charset [,maxlinelen=76 [,header_name=""
+    -¯                 [,continuation_ws=" "]]]]])
+      Construct an object that holds the string or Unicode string
+      's'.  You may specify an optional 'charset' to use in
+      encoding 's'; absent any argument, either 'us-ascii' or
+      'utf-8' will be used, as needed.
+
+      Since the encoded string is intended to be used as an email
+      header, it may be desirable to wrap the string to multiple
+      lines (depending on its length).  The argument 'maxlinelen'
+      specifies where the wrapping will occur; 'header_name' is
+      the name of the header you anticipate using the encoded
+      string with--it is significant only for its length.
+      Without a specified 'header_name', no width is set aside
+      for the header field itself.  The argument
+      'continuation_ws' specified what whitespace string should
+      be used to indent continuation lines; it must be a
+      combination of spaces and tabs.
+
+      Instances of the class `email.Header.Header` implement a
+      '.__str__()' method and therefore respond to the built-in
+      `str()` function and the `print` command.  Normally the
+      built-in techniques are more natural, but the method
+      `email.Header.Header.encode()` performs an identical
+      action.  As an example, let us first build a non-ASCII
+      string:
+
+      >>> from unicodedata import lookup
+      >>> lquot = lookup("LEFT-POINTING DOUBLE ANGLE QUOTATION MARK")
+      >>> rquot = lookup("RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK")
+      >>> s = lquot + "Euro-style" + rquot + " quotation"
+      >>> s
+      u'\xabEuro-style\xbb quotation'
+      >>> print s.encode('iso-8859-1')
+      ÇEuro-styleÈ quotation
+
+      Using the string 's', let us encode it for an RFC-2822
+      header:
+
+      >>> from email.Header import Header
+      >>> print Header(s)
+      =?utf-8?q?=C2=ABEuro-style=C2=BB_quotation?=
+      >>> print Header(s,'iso-8859-1')
+      =?iso-8859-1?q?=ABEuro-style=BB_quotation?=
+      >>> print Header(s,'utf-16')
+      =?utf-16?b?/v8AqwBFAHUAcgBvAC0AcwB0AHkAbABl?=
+       =?utf-16?b?/v8AuwAgAHEAdQBvAHQAYQB0AGkAbwBu?=
+      >>> print Header(s,'us-ascii')
+      =?utf-8?q?=C2=ABEuro-style=C2=BB_quotation?=
+
+      Notice that in the last case, the `email.Header.Header`
+      initializer did not take too seriously my request for an
+      ASCII character set, since it was not adequate to represent
+      the string.  However, the class is happy to skip the
+      encoding strings where they are not needed:
+
+      >>> print Header('"US-style" quotation')
+      "US-style" quotation
+      >>> print Header('"US-style" quotation','utf-8')
+      =?utf-8?q?=22US-style=22_quotation?=
+      >>> print Header('"US-style" quotation','us-ascii')
+      "US-style" quotation
+
+  METHODS:
+
+  email.Header.Header.append(s [,charset])
+      Add the string or Unicode string 's' to the end of the
+      current instance content, using character set 'charset'.
+      Note that the charset of the added text need not be the
+      same as that of the existing content.
+
+      >>> subj = Header(s,'latin-1',65)
+      >>> print subj
+      =?iso-8859-1?q?=ABEuro-style=BB_quotation?=
+      >>> unicodedata.name(omega), unicodedata.name(Omega)
+      ('GREEK SMALL LETTER OMEGA', 'GREEK CAPITAL LETTER OMEGA')
+      >>> subj.append(', Greek: ', 'us-ascii')
+      >>> subj.append(Omega, 'utf-8')
+      >>> subj.append(omega, 'utf-16')
+      >>> print subj
+      =?iso-8859-1?q?=ABEuro-style=BB_quotation?=, Greek:
+       =?utf-8?b?zqk=?= =?utf-16?b?/v8DyQ==?=
+       >>> unicode(subj)
+       u'\xabEuro-style\xbb quotation, Greek: \u03a9\u03c9'
+
+  email.Header.Header.encode()
+  email.Header.Header.__str__()
+      Return an ASCII string representation of the instance
+      content.
+
+  FUNCTIONS:
+
+  email.Header.decode_header(header)
+      Return a list of pairs describing the components of the
+      RFC-2231 string held in the header object 'header'.  Each
+      pair in the list contains a Python string (not Unicode) and
+      an encoding name.
+
+      >>> email.Header.decode_header(Header('spam and eggs'))
+      [('spam and eggs', None)]
+      >>> print subj
+      =?iso-8859-1?q?=ABEuro-style=BB_quotation?=, Greek:
+       =?utf-8?b?zqk=?= =?utf-16?b?/v8DyQ==?=
+      >>> for tup in email.Header.decode_header(subj): print tup
+      ...
+      ('\xabEuro-style\xbb quotation', 'iso-8859-1')
+      (', Greek:', None)
+      ('\xce\xa9', 'utf-8')
+      ('\xfe\xff\x03\xc9', 'utf-16')
+
+      These pairs may be used to construct Unicode strings using
+      the built-in `unicode()` function.  However, plain ASCII
+      strings show an encoding of 'None', which is not acceptable
+      to the `unicode()` function.
+
+      >>> for s,enc in email.Header.decode_header(subj):
+      ...     enc = enc or 'us-ascii'
+      ...     print `unicode(s, enc)`
+      ...
+      u'\xabEuro-style\xbb quotation'
+      u', Greek:'
+      u'\u03a9'
+      u'\u03c9'
+
+      SEE ALSO, `unicode()`, `email.Header.make_header()`
+
+  email.Header.make_header(decoded_seq [,maxlinelen [,header_name
+    -¯                      [,continuation_ws]]])
+      Construct a header object from a list of pairs or the type
+      returned by `email.Header.decode_header()`.  You may also,
+      of course, easily construct the list 'decoded_seq'
+      manually, or by other means.  The arguments 'maxlinelen',
+      'header_name', and 'continuation_ws' are the same as with
+      this `email.Header.Header` class.
+
+      >>> email.Header.make_header([('\xce\xa9','utf-8'),
+      ...                           ('-man','us-ascii')]).encode()
+      '=?utf-8?b?zqk=?=-man'
+
+      SEE ALSO, `email.Header.decode_header()`, `email.Header.Header`
+
+  =================================================================
+    MODULE -- email.Iterators : Iterate through components of messages
+  =================================================================
+
+  The module [email.Iterators] provides several convenience
+  functions to walk through messages in ways different from
+  `email.Message.Message.get_payload()` or
+  `email.Message.Message.walk()`.
+
+  FUNCTIONS:
+
+  email.Iterators.body_line_iterator(mess)
+      Return a generator object that iterates through each
+      content line of the message object 'mess'.  The entire body
+      that would be produced by 'str(mess)' is reached,
+      regardless of the content types and nesting of parts.  But
+      any MIME delimiters are omitted from the returned lines.
+
+      >>> import email.MIMEText, email.Iterators
+      >>> mess1 = email.MIMEText.MIMEText('message one')
+      >>> mess2 = email.MIMEText.MIMEText('message two')
+      >>> combo = email.Message.Message()
+      >>> combo.set_type('multipart/mixed')
+      >>> combo.attach(mess1)
+      >>> combo.attach(mess2)
+      >>> for line in email.Iterators.body_line_iterator(combo):
+      ...     print line
+      ...
+      message one
+      message two
+
+  email.Iterators.typed_subpart_iterator(mess [,maintype="text" [,subtype]])
+      Return a generator object that iterates through each
+      subpart of message whose type matches 'maintype'.  If a
+      subtype 'subtype' is specified, the match is further
+      restricted to 'maintype/subtype'.
+
+  email.Iterators._structure(mess [,file=sys.stdout])
+      Write a "pretty-printed" representation of the structure
+      of the body of message 'mess'.  Output to the file-like
+      object 'file'.
+
+      >>> email.Iterators._structure(combo)
+      multipart/mixed
+          multipart/digest
+              image/png
+              text/plain
+          audio/mp3
+          text/html
+
+  SEE ALSO, `email.Message.Message.get_payload()`,
+  `email.Message.Message.walk()`
+
+  =================================================================
+    MODULE -- email.Message : Class representing an email message
+  =================================================================
+
+  A message object that utilizes the [email.Message] module
+  provides a large number of syntactic conveniences and support
+  methods for manipulating an email or news message. The class
+  `email.Message.Message` is a very good example of a customized
+  datatype. The built-in `str()` function--and therefore also the
+  'print' command--cause a message object to produce its RFC-2822
+  serialization.
+
+  In many ways, a message object is dictionary-like. The
+  appropriate magic methods are implemented in it to support keyed
+  indexing and assignment, the built-in `len()` function,
+  containment testing with the 'in' keyword, and key deletion.
+  Moreover, the methods one expects to find in a Python dict are
+  all implemented by `email.Message.Message`: '.has_key()',
+  '.keys()', '.values()', '.items()', and '.get()'. Some usage
+  examples are helpful:
+
+      >>> import mailbox, email, email.Parser
+      >>> mbox = mailbox.PortableUnixMailbox(open('mbox'),
+      ...                        email.Parser.Parser().parse)
+      >>> mess = mbox.next()
+      >>> len(mess)                 # number of headers
+      16
+      >>> 'X-Status' in mess        # membership testing
+      1
+      >>> mess.has_key('X-AGENT')   # also membership test
+      0
+      >>> mess['x-agent'] = "Python Mail Agent"
+      >>> print mess['X-AGENT']     # access by key
+      Python Mail Agent
+      >>> del mess['X-Agent']       # delete key/val pair
+      >>> print mess['X-AGENT']
+      None
+      >>> [fld for (fld,val) in mess.items() if fld=='Received']
+      ['Received', 'Received', 'Received', 'Received', 'Received']
+
+  This is dictionary-like behavior, but only to an extent. Keys are
+  case-insensitive to match email header rules. Moreover, a given
+  key may correspond to multiple values--indexing by key will
+  return only the first such value, but methods like '.keys()',
+  '.items()', or '.get_all()' will return a list of all the
+  entries. In some other ways, an `email.Message.Message` object is
+  more like a list of tuples, chiefly in guaranteeing to retain a
+  specific order to header fields.
+
+  A few more details of keyed indexing should be mentioned.
+  Assigning to a keyed field will add an -additional- header,
+  rather than replace an existing one. In this respect, the
+  operation is more like a `list.append()` method. Deleting a
+  keyed field, however, deletes every matching header. If you
+  want to replace a header completely, delete first, then assign.
+
+  The special syntax defined by the `email.Message.Message` class
+  is all for manipulating headers. But a message object will
+  typically also have a body with one or more payloads. If the
+  'Content-Type' header contains the value 'multipart/*', the body
+  should consist of zero or more payloads, each one itself a
+  message object. For single part content types (including where
+  none is explicitly specified), the body should contain a string,
+  perhaps an encoded one. The message instance method
+  '.get_payload()', therefore, can return either a list of message
+  objects or a string. Use the method '.is_multipart()' to
+  determine which return type is expected.
+
+  As the epigram to this chapter suggests, you should strictly
+  follow content typing rules in messages you construct yourself.
+  But in real-world situations, you are likely to encounter
+  messages with badly mismatched headers and bodies. Single part
+  messages might claim to be multipart, and vice versa. Moreover,
+  the MIME type claimed by headers is only a loose indication of
+  what payloads actually contain. Part of the mismatch comes from
+  spammers and virus writers trying to exploit the poor standards
+  compliance and lax security of Microsoft applications--a
+  malicious payload can pose as an innocuous type, and Windows will
+  typically launch apps based on filenames instead of MIME types.
+  But other problems arise not out of malice, but simply out of
+  application and transport errors.  Depending on the source of
+  your processed messages, you might want to be lenient about the
+  allowable structure and headers of messages.
+
+  SEE ALSO, [UserDict], [UserList]
+
+  CLASSES:
+
+  email.Message.Message()
+      Construct a message object.  The class accepts no
+      initialization arguments.
+
+  METHODS AND ATTRIBUTES:
+
+  email.Message.Message.add_header(field, value [,**params])
+      Add a header to the message headers.  The header field is
+      'field', and its value is 'value'.The effect is the same as
+      keyed assignment to the object, but you may optionally
+      include parameters using Python keyword arguments.
+
+      >>> import email.Message
+      >>> msg = email.Message.Message()
+      >>> msg['Subject'] = "Report attachment"
+      >>> msg.add_header('Content-Disposition','attachment',
+      ...                 filename='report17.txt')
+      >>> print msg
+      From nobody Mon Nov 11 15:11:43 2002
+      Subject: Report attachment
+      Content-Disposition: attachment; filename="report17.txt"
+
+  email.Message.Message.as_string([unixfrom=0])
+      Serialize the message to an RFC-2822-compliant text string.
+      If the 'unixfrom' argument is specified with a true value,
+      include the BSD mailbox "From_" envelope header.
+      Serialization with `str()` or `print` includes the "From_"
+      envelope header.
+
+  email.Message.Message.attach(mess)
+      Add a payload to a message.  The argument 'mess' must
+      specify an `email.Message.Message` object.  After this
+      call, the payload of the message will be a list of message
+      objects (perhaps of length one, if this is the first object
+      added).  Even though calling this method causes the method
+      '.is_multipart()' to return a true value, you still need to
+      separately set a correct 'multipart/*' content type for the
+      message to serialize the object.
+
+      >>> mess = email.Message.Message()
+      >>> mess.is_multipart()
+      0
+      >>> mess.attach(email.Message.Message())
+      >>> mess.is_multipart()
+      1
+      >>> mess.get_payload()
+      [<email.Message.Message instance at 0x3b2ab0>]
+      >>> mess.get_content_type()
+      'text/plain'
+      >>> mess.set_type('multipart/mixed')
+      >>> mess.get_content_type()
+      'multipart/mixed'
+
+      If you wish to create a single part payload for a message
+      object, use the method `email.Message.Message.set_payload()`.
+
+      SEE ALSO, `email.Message.Message.set_payload()`
+
+  email.Message.Message.del_param(param [,header="Content-Type"
+    -¯                            [,requote=1]])
+      Remove the parameter 'param' from a header.  If the
+      parameter does not exist, no action is taken, but also no
+      exception is raised.  Usually you are interested in the
+      'Content-Type' header, but you may specify a different
+      'header' argument to work with another one.  The argument
+      'requote' controls whether the parameter value is quoted
+      (a good idea that does no harm).
+
+      >>> mess = email.Message.Message()
+      >>> mess.set_type('text/plain')
+      >>> mess.set_param('charset','us-ascii')
+      >>> print mess
+      From nobody Mon Nov 11 16:12:38 2002
+      MIME-Version: 1.0
+      Content-Type: text/plain; charset="us-ascii"
+
+      >>> mess.del_param('charset')
+      >>> print mess
+      From nobody Mon Nov 11 16:13:11 2002
+      MIME-Version: 1.0
+      content-type: text/plain
+
+  email.Message.Message.epilogue
+      Message bodies that contain MIME content delimiters can
+      also have text that falls outside the area between the
+      first and final delimiter.  Any text at the very end of the
+      body is stored in `email.Message.Message.epilogue`.
+
+      SEE ALSO, `email.Message.Message.preamble`
+
+  email.Message.Message.get_all(field [,failobj=None])
+      Return a list of all the headers with the field name
+      'field'.  If no matches exist, return the value specified
+      in argument 'failobj'.  In most cases, header fields occur
+      just once (or not at all), but a few fields such as
+      'Received' typically occur multiple times.
+
+      The default nonmatch return value of 'None' is probably
+      not the most useful choice.  Returning an empty list will
+      let you use this method in both 'if' tests and iteration
+      context:
+
+      >>> for rcv in mess.get_all('Received',[]):
+      ...     print rcv
+      ...
+      About that time
+      A little earlier
+      >>> if mess.get_all('Foo',[]):
+      ...     print "Has Foo header(s)"
+
+  email.Message.Message.get_boundary([failobj=None])
+      Return the MIME message boundary delimiter for the message.
+      Return 'failobj' if no boundary is defined; this -should-
+      always be the case if the message is not multipart.
+
+  email.Message.Message.get_charsets([failobj=None])
+      Return list of string descriptions of contained character
+      sets.
+
+  email.Message.Message.get_content_charset([failobj=None])
+      Return a string description of the message character set.
+
+  email.Message.Message.get_content_maintype()
+      For message 'mess', equivalent to
+      'mess.get_content_type().split("/")[0]'.
+
+  email.Message.Message.get_content_subtype()
+      For message 'mess', equivalent to
+      'mess.get_content_type().split("/")[1]'.
+
+  email.Message.Message.get_content_type()
+      Return the MIME content type of the message object.  The
+      return string is normalized to lowercase and contains
+      both the type and subtype, separated by a '/'.
+
+      >>> msg_photo.get_content_type()
+      'image/png'
+      >>> msg_combo.get_content_type()
+      'multipart/mixed'
+      >>> msg_simple.get_content_type()
+      'text/plain'
+
+  email.Message.Message.get_default_type()
+      Return the current default type of the message.  The
+      default type will be used in decoding payloads that are not
+      accompanied by an explicit 'Content-Type' header.
+
+  email.Message.Message.get_filename([failobj=None])
+      Return the 'filename' parameter of the
+      'Content-Disposition' header.  If no such parameter exists
+      (perhaps because no such header exists), 'failobj' is
+      returned instead.
+
+  email.Message.Message.get_param(param [,failobj [,header=... [,unquote=1]]])
+      Return the parameter 'param' of the header 'header'.  By
+      default, use the 'Content-Type' header.  If the parameter
+      does not exist, return 'failobj'.  If the argument
+      'unquote' is specified as a true value, the quote marks are
+      removed from the parameter.
+
+      >>> print mess.get_param('charset',unquote=1)
+      us-ascii
+      >>> print mess.get_param('charset',unquote=0)
+      "us-ascii"
+
+      SEE ALSO, `email.Message.Message.set_param()`
+
+  email.Message.Message.get_params([,failobj=None [,header=... [,unquote=1]]])
+      Return all the parameters of the header 'header'.  By
+      default, examine the 'Content-Type' header.  If the header
+      does not exist, return 'failobj' instead.  The return
+      value consists of a list of key/val pairs.  The argument
+      'unquote' removes extra quotes from values.
+
+      >>> print mess.get_params(header="To")
+      [('<mertz@gnosis.cx>', '')]
+      >>> print mess.get_params(unquote=0)
+      [('text/plain', ''), ('charset', '"us-ascii"')]
+
+  email.Message.Message.get_payload([i [,decode=0]])
+      Return the message payload.  If the message method
+      'is_multipart()' returns true, this method returns a list
+      of component message objects.  Otherwise, this method
+      returns a string with the message body.  Note that if the
+      message object was created using `email.Parser.HeaderParser`,
+      then the body is treated as single part, even if it
+      contains MIME delimiters.
+
+      Assuming that the message is multipart, you may specify the
+      'i' argument to retrieve only the indexed component.
+      Specifying the 'i' argument is equivalent to indexing on the
+      returned list without specifying 'i'.  If 'decode' is
+      specified as a true value, and the payload is single part,
+      the returned payload is decoded (i.e., from quoted printable
+      or base64).
+
+      I find that dealing with a payload that may be either a
+      list or a text is somewhat awkward.  Frequently, you would
+      like to simply loop over all the parts of a message body,
+      whether or not MIME multiparts are contained in it.  A
+      wrapper function can provide uniformity:
+
+      #---------------- write_payload_list.py ------------------#
+      #!/usr/bin/env python
+      "Write payload list to separate files"
+      import email, sys
+      def get_payload_list(msg, decode=1):
+          payload = msg.get_payload(decode=decode)
+          if type(payload) in [type(""), type(u"")]:
+              return [payload]
+          else:
+              return payload
+      mess = email.message_from_file(sys.stdin)
+      for part,num in zip(get_payload_list(mess),range(1000)):
+          file = open('%s.%d' % (sys.argv[1], num), 'w')
+          print >> file, part
+
+      SEE ALSO, [email.Parser],
+                `email.Message.Message.is_multipart()`,
+                `email.Message.Message.walk()`
+
+  email.Message.Message.get_unixfrom()
+      Return the BSD mailbox "From_" envelope header, or 'None'
+      if none exists.
+
+      SEE ALSO, [mailbox]
+
+  email.Message.Message.is_multipart()
+      Return a true value if the message is multipart.  Notice
+      that the criterion for being multipart is having multiple
+      message objects in the payload; the 'Content-Type' header
+      is not guaranteed to be 'multipart/*' when this method
+      returns a true value (but if all is well, it -should- be).
+
+      SEE ALSO, `email.Message.Message.get_payload()`
+
+  email.Message.Message.preamble
+      Message bodies that contain MIME content delimiters can
+      also have text that falls outside the area between the
+      first and final delimiter.  Any text at the very beginning
+      of the body is stored in `email.Message.Message.preamble`.
+
+      SEE ALSO, `email.Message.Message.epilogue`
+
+  email.Message.Message.replace_header(field, value)
+      Replaces the first occurrence of the header with the name
+      'field' with the value 'value'.  If no matching header is
+      found, raise 'KeyError'.
+
+  email.Message.Message.set_boundary(s)
+      Set the boundary parameter of the 'Content-Type' header to
+      's'.  If the message does not have a 'Content-Type' header,
+      raise 'HeaderParserError'.  There is generally no reason to
+      create a boundary manually, since the [email] module
+      creates good unique boundaries on it own for multipart
+      messages.
+
+  email.Message.Message.set_default_type(ctype)
+      Set the current default type of the message to 'ctype'. The
+      default type will be used in decoding payloads that are not
+      accompanied by an explicit 'Content-Type' header.
+
+  email.Message.Message.set_param(param, value [,header="Content-Type"
+    -¯                             [,requote=1 [,charset [,language]]]])
+      Set the parameter 'param' of the header 'header' to the
+      value 'value'. If the argument 'requote' is specified as a
+      true value, the parameter is quoted.  The arguments
+      'charset' and 'language' may be used to encode the
+      parameter according to RFC-2231.
+
+  email.Message.Message.set_payload(payload [,charset=None])
+      Set the message payload to a string or to a list of message
+      objects.  This method overwrites any existing payload the
+      message has.  For messages with single part content, you
+      must use this method to configure the message body (or use
+      a convenience message subclass to construct the message in
+      the first place).
+
+      SEE ALSO, `email.Message.Message.attach()`,
+                `email.MIMEText.MIMEText`,
+                `email.MIMEImage.MIMEImage`,
+                `email.MIMEAudio.MIMEAudio`
+
+  email.Message.Message.set_type(ctype [,header="Content-Type" [,requote=1]])
+      Set the content type of the message to 'ctype', leaving any
+      parameters to the header as is.  If the argument 'requote'
+      is specified as a true value, the parameter is quoted.  You
+      may also specify an alternative header to write the content
+      type to, but for the life of me, I cannot think of any
+      reason you would want to.
+
+  email.Message.Message.set_unixfrom(s)
+      Set the BSD mailbox envelope header.  The argument 's'
+      should include the word 'From' and a space, usually
+      followed by a name and a date.
+
+      SEE ALSO, [mailbox]
+
+  email.Message.Message.walk()
+      Recursively traverse all message parts and subparts of the
+      message.  The returned iterator will yield each nested
+      message object in depth-first order.
+
+      >>> for part in mess.walk():
+      ...    print part.get_content_type()
+      multipart/mixed
+      text/html
+      audio/midi
+
+      SEE ALSO, `email.Message.Message.get_payload()`
+
+  =================================================================
+    MODULE -- email.Parser : Parse a text message into a message object
+  =================================================================
+
+  There are two parsers provided by the [email.Parser] module:
+  `email.Parser.Parser` and its child `email.Parser.HeaderParser`.
+  For general usage, the former is preferred, but the latter allows
+  you to treat the body of an RFC-2822 message as an unparsed
+  block. Skipping the parsing of message bodies can be much faster
+  and is also more tolerant of improperly formatted message bodies
+  (something one sees frequently, albeit mostly in spam messages
+  that lack any content value as well).
+
+  The parsing methods of both classes accept an optional
+  'headersonly' argument. Specifying 'headersonly' has a stronger
+  effect than using the `email.Parser.HeaderParser` class. If
+  'headersonly' is specified in the parsing methods of either
+  class, the message body is skipped altogether--the message object
+  created has an entirely empty body.  On the other hand, if
+  `email.Parser.HeaderParser` is used as the parser class, but
+  'headersonly' is specified as false (the default), the body is
+  always read as a single part text, even if its content type is
+  'multipart/*'.
+
+  CLASSES:
+
+  email.Parser.Parser([_class=email.Message.Message [,strict=0]])
+      Construct a parser instance that uses the class '_class' as
+      the message object constructor.  There is normally no
+      reason to specify a different message object type.
+      Specifying strict parsing with the 'strict' option will
+      cause exceptions to be raised for messages that fail to
+      conform fully to the RFC-2822 specification.  In practice,
+      "lax" parsing is much more useful.
+
+  email.Parser.HeaderParser([_class=email.Message.Message [,strict=0]])
+      Construct a parser instance that is the same as an
+      instance of `email.Parser.Parser` except that multipart
+      messages are parsed as if they were single part.
+
+  METHODS:
+
+  email.Parser.Parser.parse(file [,headersonly=0])
+  email.Parser.HeaderParser.parse(file [,headersonly=0])
+      Return a message object based on the message text found in
+      the file-like object 'file'.  If the optional argument
+      'headersonly' is given a true value, the body of the
+      message is discarded.
+
+  email.Parser.Parser.parsestr(s [,headersonly=0])
+  email.Parser.HeaderParser.parsestr(s [,headersonly=0])
+      Return a message object based on the message text found in
+      the string 's'.  If the optional argument 'headersonly' is
+      given a true value, the body of the message is discarded.
+
+  =================================================================
+    MODULE -- email.Utils : Helper functions for working with messages
+  =================================================================
+
+  The module [email.Utils] contains a variety of convenience
+  functions, mostly for working with special header fields.
+
+  FUNCTIONS:
+
+  email.Utils.decode_rfc2231(s)
+      Return a decoded string for RFC-2231 encoded string 's':
+
+      >>> Omega = unicodedata.lookup("GREEK CAPITAL LETTER OMEGA")
+      >>> print email.Utils.encode_rfc2231(Omega+'-man@gnosis.cx')
+      %3A9-man%40gnosis.cx
+      >>> email.Utils.decode_rfc2231("utf-8''%3A9-man%40gnosis.cx")
+      ('utf-8', '', ':9-man@gnosis.cx')
+
+  email.Utils.encode_rfc2231(s [,charset [,language]])
+      Return an RFC-2231-encoded string from the string 's'.  A
+      charset and language may optionally be specified.
+
+  email.Utils.formataddr(pair)
+      Return formatted address from pair '(realname,addr)':
+
+      >>> email.Utils.formataddr(('David Mertz','mertz@gnosis.cx'))
+      'David Mertz <mertz@gnosis.cx>'
+
+  email.Utils.formataddr([timeval [,localtime=0]])
+      Return an RFC-2822-formatted date based on a time value as
+      returned by `time.localtime()`.  If the argument
+      'localtime' is specified with a true value, use the local
+      timezone rather than UTC.  With no options, use the current
+      time.
+
+      >>> email.Utils.formatdate()
+      'Wed, 13 Nov 2002 07:08:01 -0000'
+
+  email.Utils.getaddresses(addresses)
+      Return a list of pairs '(realname,addr)' based on the list
+      of compound addresses in argument 'addresses'.
+
+      >>> addrs = ['"Joe" <jdoe@nowhere.lan>','Jane <jroe@other.net>']
+      >>> email.Utils.getaddresses(addrs)
+      [('Joe', 'jdoe@nowhere.lan'), ('Jane', 'jroe@other.net')]
+
+  email.Utils.make_msgid([seed])
+      Return a unique string suitable for a 'Message-ID' header.
+      If the argument 'seed' is given, incorporate that string
+      into the returned value; typically a 'seed' is the sender's
+      domain name or other identifying information.
+
+      >>> email.Utils.make_msgid('gnosis')
+      '<20021113071050.3861.13687.gnosis@localhost>'
+
+  email.Utils.mktime_tz(tuple)
+      Return a timestamp based on an `email.Utils.parsedate_tz()`
+      style tuple.
+
+      >>> email.Utils.mktime_tz((2001, 1, 11, 14, 49, 2, 0, 0, 0, 0))
+      979224542.0
+
+  email.Utils.parseaddr(address)
+      Parse a compound address into the pair '(realname,addr)'.
+
+      >>> email.Utils.parseaddr('David Mertz <mertz@gnosis.cx>')
+      ('David Mertz', 'mertz@gnosis.cx')
+
+  email.Utils.parsedate(datestr)
+      Return a date tuple based on an RFC-2822 date string.
+
+      >>> email.Utils.parsedate('11 Jan 2001 14:49:02 -0000')
+      (2001, 1, 11, 14, 49, 2, 0, 0, 0)
+
+      SEE ALSO, [time]
+
+  email.Utils.parsedate_tz(datestr)
+      Return a date tuple based on an RFC-2822 date string.
+      Same as `email.Utils.parsedate()`, but adds a tenth tuple
+      field for offset from UTC (or 'None' if not determinable).
+
+  email.Utils.quote(s)
+      Return a string with backslashes and double quotes escaped.
+
+      >>> print email.Utils.quote(r'"MyPath" is d:\this\that')
+      \"MyPath\" is d:\\this\\that
+
+  email.Utils.unquote(s)
+      Return a string with surrounding double quotes or angle
+      brackets removed.
+
+      >>> print email.Utils.unquote('<mertz@gnosis.cx>')
+      mertz@gnosis.cx
+      >>> print email.Utils.unquote('"us-ascii"')
+      us-ascii
+
+
+  TOPIC --  Communicating with Mail Servers
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE -- imaplib : IMAP4 client
+  =================================================================
+
+  The module [imaplib] supports implementing custom IMAP clients.
+  This protocol is detailed in RFC-1730 and RFC-2060. As with the
+  discussion of other protocol libraries, this documentation aims
+  only to cover the basics of communicating with an IMAP
+  server--many methods and functions are omitted here. In
+  particular, of interest here is merely being able to retrieve
+  messages--creating new mailboxes and messages is outside the
+  scope of this book.
+
+  The _Python Library Reference_ describes the POP3 protocol as
+  obsolescent and recommends the use of IMAP4 if your server
+  supports it. While this advice is not incorrect technically--IMAP
+  indeed has some advantages--in my experience, support for POP3 is
+  far more widespread among both clients and servers than is
+  support for IMAP4. Obviously, your specific requirements will
+  dictate the choice of an appropriate support library.
+
+  Aside from using a more efficient transmission strategy (POP3 is
+  line-by-line, IMAP4 sends whole messages), IMAP4 maintains
+  multiple mailboxes on a server and also automates filtering
+  messages by criteria. A typical (simple) IMAP4 client application
+  might look like the one below. To illustrate a few methods, this
+  application will print all the promising subject lines, after
+  deleting any that look like spam. The example does not itself
+  retrieve regular messages, only their headers.
+
+      #------------- check_imap_subjects.py --------------------#
+      #!/usr/bin/env python
+      import imaplib, sys
+      if len(sys.argv) == 4:
+          sys.argv.append('INBOX')
+      (host, user, passwd, mbox) = sys.argv[1:]
+      i = imaplib.IMAP4(host, port=143)
+      i.login(user, passwd)
+      resp = i.select(mbox)
+      if r[0] <> 'OK':
+          sys.stderr.write("Could not select %s\n" % mbox)
+          sys.exit()
+      # delete some spam messages
+      typ, spamlist = i.search(None, '(SUBJECT) "URGENT"')
+      i.store(','.join(spamlist.split()),'+FLAGS.SILENT','\deleted')
+      i.expunge()
+      typ, messnums = i.search(None,'ALL').split()
+      for mess in messnums:
+          typ, header = i.fetch(mess, 'RFC822.HEADER')
+          for line in header[0].split('\n'):
+              if string.upper(line[:9]) == 'SUBJECT: ':
+                  print line[9:]
+      i.close()
+      i.logout()
+
+  There is a bit more work to this than in the POP3 example, but
+  you can also see some additional capabilities. Unfortunately,
+  much of the use of the [imaplib] module depends on passing
+  strings with flags and commands, none of which are
+  well-documented in the _Python Library Reference_ or in the
+  source to the module.  A separate text on the IMAP protocol is
+  probably necessary for complex client development.
+
+  CLASSES:
+
+  imaplib.IMAP4([host="localhost" [port=143]])
+      Create an IMAP instance object to manage a host connection.
+
+  METHODS:
+
+  imaplib.IMAP4.close()
+      Close the currently selected mailbox, and delete any
+      messages marked for deletion.  The method
+      `imaplib.IMAP4.logout()` is used to actually disconnect
+      from the server.
+
+  imaplib.IMAP4.expunge()
+      Permanently delete any messages marked for deletion in the
+      currently selected mailbox.
+
+  imaplib.IMAP4.fetch(message_set, message_parts)
+      Return a pair '(typ,datalist)'.  The first field 'typ' is
+      either 'OK' or 'NO', indicating the status.  The second
+      field 'datalist' is a list of returned strings from the
+      fetch request.  The argument 'message_set' is a
+      comma-separated list of message numbers to retrieve.  The
+      'message_parts' describe the components of the messages
+      retrieved--header, body, date, and so on.
+
+  imaplib.IMAP4.list([dirname="" [,pattern="*"])
+      Return a '(typ,datalist)' tuple of all the mailboxes in
+      directory 'dirname' that match the glob-style pattern
+      'pattern'.  'datalist' contains a list of string names of
+      mailboxes.  Contrast this method with
+      `imaplib.IMAP4.search()`, which returns numbers of
+      individual messages from the currently selected mailbox.
+
+  imaplib.IMAP4.login(user, passwd)
+      Connect to the IMAP server specified in the instance
+      initialization, using the authentication information given
+      by 'user' and 'passwd'.
+
+  imaplib.IMAP4.logout()
+      Disconnect from the IMAP server specified in the instance
+      initialization.
+
+  imaplib.IMAP4.search(charset, criterion1 [,criterion2 [,...]])
+      Return a '(typ,messnums)' tuple where 'messnums' is a
+      space-separated string of message numbers of matching
+      messages. Message criteria specified in 'criterion1', and
+      so on may either be 'ALL' for all messages or flags
+      indicating the fields and values to match.
+
+  imaplib.IMAP4.select([mbox="INBOX" [,readonly=0])
+      Select the current mailbox for operations such as
+      `imaplib.IMAP4.search()` and `imaplib.IMAP4.expunge()`.
+      The argument 'mbox' gives the name of the mailbox, and
+      'readonly' allows you to prevent modification to a mailbox.
+
+  SEE ALSO, [email], [poplib], [smtplib]
+
+  =================================================================
+    MODULE -- poplib : A POP3 client class
+  =================================================================
+
+  The module [poplib] supports implementing custom POP3 clients.
+  This protocol is detailed in RFC-1725. As with the discussion of
+  other protocol libraries, this documentation aims only to cover
+  the basics of communicating with a POP3 server--some methods or
+  functions may be omitted here.
+
+  The _Python Library Reference_ describes the POP3 protocol as
+  obsolescent and recommends the use of IMAP4 if your server
+  supports it.  While this advice is not incorrect
+  technically--IMAP indeed has some advantages--in my experience,
+  support for POP3 is far more widespread among both clients and
+  servers than is support for IMAP4.  Obviously, your specific
+  requirements will dictate the choice of an appropriate support
+  library.
+
+  A typical (simple) POP3 client application might look like the
+  one below. To illustrate a few methods, this application will
+  print all the promising subject lines, and retrieve and delete
+  any that look like spam. The example does not itself retrieve
+  regular messages, only their headers.
+
+      #--------------- new_email_subjects.py -------------------#
+      #!/usr/bin/env python
+      import poplib, sys, string
+      spamlist = []
+      (host, user, passwd) = sys.argv[1:]
+      mbox = poplib.POP3(host)
+      mbox.user(user)
+      mbox.pass_(passwd)
+
+      for i in range(1, mbox.stat()[0]+1):
+          # messages use one-based indexing
+          headerlines = mbox.top(i, 0)[1]    # No body lines
+          for line in headerlines:
+              if string.upper(line[:9]) == 'SUBJECT: ':
+                  if -1 <> string.find(line,'URGENT'):
+                      spam = string.join(mbox.retr(i)[1],'\n')
+                      spamlist.append(spam)
+                      mbox.dele(i)
+                  else:
+                       print line[9:]
+
+      mbox.quit()
+      for spam in spamlist:
+          report_to_spamcop(spam)     # assuming this func exists
+
+  CLASSES:
+
+  poplib.POP3(host [,port=110])
+      The [poplib] module provides a single class that
+      establishes a connection to a POP3 server at host 'host',
+      using port 'port'.
+
+  METHODS:
+
+  poplib.POP3.apop(user, secret)
+      Log in to a server using APOP authentication.
+
+  poplib.POP3.dele(messnum)
+      Mark a message for deletion.  Normally the actual deletion
+      does not occur until you log off with `poplib.POP3.quit()`,
+      but server implementations differ.
+
+  poplib.POP3.pass_(password)
+      Set the password to use when communicating with the POP
+      server.
+
+  poplib.POP3.quit()
+      Log off from the connection to the POP server.  Logging off
+      will cause any pending deletions to be carried out.  Call
+      this method as soon as possible after you establish a
+      connection to the POP server; while you are connected, the
+      mailbox is locked against receiving any incoming messages.
+
+  poplib.POP3.retr(messnum)
+      Return the message numbered 'messnum' (using one-based
+      indexing).  The return value is of the form
+      '(resp,linelist,octets)', where 'linelist' is a list of the
+      individual lines in the message.  To re-create the whole
+      message, you will need to join these lines.
+
+  poplib.POP3.rset()
+      Unmark any messages marked for deletion.  Since server
+      implementations differ, it is not good practice to mark
+      messages using `poplib.POP3.dele()` unless you are pretty
+      confident you want to erase them.  However,
+      `poplib.POP3.rset()` can usually save messages should
+      unusual circumstances occur before the connection is logged
+      off.
+
+  poplib.POP3.top(messnum, lines)
+      Retrieve the initial lines of message 'messnum'.  The
+      header is always included, along with 'lines' lines from
+      the body.  The return format is the same as with
+      `poplib.POP3.retr()`, and you will typically be interested
+      in offset 1 of the returned tuple.
+
+  poplib.POP3.stat()
+      Retrieve the status of the POP mailbox in the format
+      '(messcount,mbox_size)'.  'messcount' gives you the total
+      number of message pending; 'mbox_size' is the total size of
+      all pending messages.
+
+  poplib.POP3.user(username)
+      Set the username to use when communicating with the POP
+      server.
+
+  SEE ALSO, [email], [smtplib], [imaplib]
+
+  =================================================================
+    MODULE -- smtplib : SMTP/ESMTP client class
+  =================================================================
+
+  The module [smtplib] supports implementing custom SMTP clients.
+  This protocol is detailed in RFC-821 and RFC-1869. As with the
+  discussion of other protocol libraries, this documentation aims
+  only to cover the basics of communicating with an SMTP
+  server--most methods and functions are omitted here. The modules
+  [poplib] and [imaplib] are used to retrieve incoming email, and
+  the module [smtplib] is used to send outgoing email.
+
+  A typical (simple) SMTP client application might look like the
+  one below. This example is a command-line tool that accepts as a
+  parameters the mandatory 'To' message envelope header, constructs
+  the 'From' using environment variables, and sends whatever text
+  is on STDIN. The 'To' and 'From' are also added as RFC-822
+  headers in the message header.
+
+      #-------------------- send_email.py ----------------------#
+      #!/usr/bin/env python
+      import smtplib
+      from sys import argv, stdin
+      from os import getenv
+      host = getenv('HOST', 'localhost')
+      if len(argv) >= 2:
+          to_ = argv[1]
+      else:
+          to_ = raw_input('To: ').strip()
+      if len(argv) >=3:
+          subject = argv[2]
+          body = stdin.read()
+      else:
+          subject = stdin.readline()
+          body = subject + stdin.read()
+      from_ = "%s@%s" % (getenv('USER', 'user'), host)
+      mess = '''From: %s\nTo: %s\n\n%s' % (to_, from_, body)
+      server = smtp.SMTP(host)
+      server.login
+      server.sendmail(from_, to_, mess)
+      server.quit()
+
+  CLASSES:
+
+  smtplib.SMTP([host="localhost" [,port=25]])
+      Create an instance object that establishes a connection to
+      an SMTP server at host 'host', using port 'port'.
+
+  METHODS:
+
+  smtplib.SMTP.login(user, passwd)
+      Login to an SMTP server that requires authentication.
+      Raises an error if authentication fails.
+
+      Not all--or even most--SMTP servers use password
+      authentication.  Modern servers support direct
+      authentication, but since not all clients support SMTP
+      authentication, the option is often disabled.  One commonly
+      used strategy to prevent "open relays" (servers that allow
+      malicious/spam messages to be sent through them) is "POP
+      before SMTP."  In this arrangement, an IP address is
+      authorized to use an SMTP server for a period of time after
+      that same address has successfully authenticated with a
+      POP3 server on the same machine.  The timeout period is
+      typically a few minutes to hours.
+
+  smtplib.SMTP.quit()
+      Terminate an SMTP connection.
+
+  smtplib.SMTP.sendmail(from_, to_, mess [,mail_options=[] [,rcpt_options=[]]])
+      Send the message 'mess' with 'From' envelope 'from_', to
+      recipients 'to_'.  The argument 'to_' may either be a
+      string containing a single address or a Python list of
+      addresses.  The message should include any desired RFC-822
+      headers.  ESMTP options may be specified in arguments
+      'mail_options' and 'rcpt_options'.
+
+  SEE ALSO, [email], [poplib], [imaplib]
+
+
+  TOPIC -- Message Collections and Message Parts
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE -- mailbox : Work with mailboxes in various formats
+  =================================================================
+
+  The module [mailbox] provides a uniform interface to email
+  messages stored in a variety of popular formats. Each class in
+  the [mailbox] module is initialized with a mailbox of an
+  appropriate format, and returns an instance with a single method
+  '.next()'. This instance method returns each consecutive
+  message within a mailbox upon each invocation.  Moreover, the
+  '.next()' method is conformant with the iterator protocol in
+  Python 2.2+, which lets you loop over messages in recent
+  versions of Python.
+
+  By default, the messages returned by 'mailbox' instances are
+  objects of the class `rfc822.Mailbox`. These message objects
+  provide a number of useful methods and attributes. However, the
+  recommendation of this book is to use the newer [email] module in
+  place of the older [rfc822]. Fortunately, you may initialize a
+  [mailbox] class using an optional message constructor. The only
+  constraint on this constructor is that it is a callable object
+  that accepts a file-like object as an argument--the [email]
+  module provides two logical choices here.
+
+      >>> import mailbox, email, email.Parser
+      >>> mbox = mailbox.PortableUnixMailbox(open('mbox'))
+      >>> mbox.next()
+      <rfc822.Message instance at 0x41d770>
+      >>> mbox = mailbox.PortableUnixMailbox(open('mbox'),
+      ...                        email.message_from_file)
+      >>> mbox.next()
+      <email.Message.Message instance at 0x5e43e0>
+      >>> mbox = mailbox.PortableUnixMailbox(open('mbox'),
+      ...                        email.Parser.Parser().parse)
+      >>> mbox.next()
+      <email.Message.Message instance at 0x6ee630>
+
+  In Python 2.2+ you might structure your application as:
+
+      #----------- Looping through a mailbox in 2.2+ -----------#
+      #!/usr/bin/env python
+      from mailbox import PortableUnixMailbox
+      from email import message_from_file as mff
+      import sys
+      folder = open(sys.argv[1])
+      for message in PortableUnixMailbox(folder, mff):
+          # do something with the message...
+          print message['Subject']
+
+  However, in earlier versions, this same code will raise an
+  'AttributeError' for the missing '.__getitem__()' magic method.
+  The slightly less elegant way to write the same application in
+  an older Python is:
+
+      #------- Looping through a mailbox in any version  -------#
+      #!/usr/bin/env python
+      "Subject printer, older Python and rfc822.Message objects"
+      import sys
+      from mailbox import PortableUnixMailbox
+      mbox = PortableUnixMailbox(open(sys.argv[1]))
+      while 1:
+          message = mbox.next()
+          if message is None:
+              break
+          print message.getheader('Subject')
+
+  CLASSES:
+
+  mailbox.UnixMailbox(file [,factory=rfc822.Message])
+      Read a BSD-style mailbox from the file-like object 'file'.
+      If the optional argument 'factory' is specified, it
+      must be a callable object that accepts a file-like object
+      as its single argument (in this case, that object is a
+      portion of an underlying file).
+
+      A BSD-style mailbox divides messages with a blank line
+      followed by a "Unix From_" line.  In this strict case, the
+      "From_" line must have 'name' and 'time' information on it
+      that matches a regular expression.  In most cases, you are
+      better off using `mailbox.PortableUnixMailbox`, which
+      relaxes the requirement for recognizing the next message in
+      a file.
+
+  mailbox.PortableUnixMailbox(file [,factory=rfc822.Message])
+      The arguments to this class are the same as for
+      `mailbox.UnixMailbox`.  Recognition of the messages within
+      the mailbox 'file' depends only on finding 'From' followed
+      by a space at the beginning of a line.  In practice, this
+      is as much as you can count on if you cannot guarantee that
+      all mailboxes of interest will be created by a specific
+      application and version.
+
+  mailbox.BabylMailbox(file [,factory=rfc822.Message])
+      The arguments to this class are the same as for
+      `mailbox.UnixMailbox`.  Handles mailbox files in Babyl
+      format.
+
+  mailbox.MmdfMailbox(file [,factory=rfc822.Message])
+      The arguments to this class are the same as for
+      `mailbox.UnixMailbox`.  Handles mailbox files in MMDF
+      format.
+
+  mailbox.MHMailbox(dirname [,factory=rfc822.Message])
+      The MH format uses the directory structure of the
+      underlying native filesystem to organize mail folders.
+      Each message is held in a separate file.  The initializer
+      argument for `mailbox.MHMailbox` is a string giving the
+      name of the directory to be processed.  The 'factory'
+      argument is the same as with `mailbox.UnixMailbox`.
+
+  mailbox.Maildir(dirname [,factory=rfc822.Message])
+      The QMail format, like the MH format,  uses the directory
+      structure of the underlying native filesystem to organize
+      mail folders. The initializer argument for `mailbox.Maildir`
+      is a string giving the name of the directory to be
+      processed.  The 'factory' argument is the same as with
+      `mailbox.UnixMailbox`.
+
+  SEE ALSO, [email], [poplib], [imaplib], `nntplib`, [smtplib], `rfc822`
+
+  =================================================================
+    MODULE -- mimetypes : Guess the MIME type of a file
+  =================================================================
+
+  The [mimetypes] module maps file extensions to MIME datatypes.
+  At its heart, the module is a dictionary, but several
+  convenience functions let you work with system configuration
+  files containing additional mappings, and also query the
+  mapping in some convenient ways.  As well as actual MIME types,
+  the [mimetypes] module tries to guess file encodings, for
+  example, compression wrapper.
+
+  In Python 2.2+, the [mimetypes] module also provides a
+  `mimetypes.MimeTypes` class that lets instances each maintain
+  their own MIME types mapping, but the requirement for multiple
+  distinct mapping is rare enough not to be worth covering here.
+
+  FUNCTIONS:
+
+  mimetypes.guess_type(url [,strict=0])
+      Return a pair '(typ,encoding)' based on the file or
+      Uniform Resource Locator (URL) named by 'url'.  If the
+      'strict' option is specified with a true value, only
+      officially specified types are considered. Otherwise, a
+      larger number of widespread MIME types are examined.  If
+      either 'type' or 'encoding' cannot be guessed, 'None' is
+      returned for that value.
+
+      >>> import mimetypes
+      >>> mimetypes.guess_type('x.abc.gz')
+      (None, 'gzip')
+      >>> mimetypes.guess_type('x.tgz')
+      ('application/x-tar', 'gzip')
+      >>> mimetypes.guess_type('x.ps.gz')
+      ('application/postscript', 'gzip')
+      >>> mimetypes.guess_type('x.txt')
+      ('text/plain', None)
+      >>> mimetypes.guess_type('a.xyz')
+      (None, None)
+
+  mimetypes.guess_extension(type [,strict=0])
+      Return a string indicating a likely extension associated
+      with the MIME type.  If multiple file extensions are
+      possible, one is returned (generally the one that is first
+      alphabetically, but this is not guaranteed).  The argument
+      'strict' has the same meaning as in `mimetypes.guess_type()`.
+
+      >>> print mimetypes.guess_extension('application/EDI-Consent')
+      None
+      >>> print mimetypes.guess_extension('application/pdf')
+      .pdf
+      >>> print mimetypes.guess_extension('application/postscript')
+      .ai
+
+  mimetypes.init([list-of-files])
+      Add the definitions from each filename listed in
+      'list-of-files' to the MIME type mapping.  Several default
+      files are examined even if this function is not called, but
+      additional configuration files may be added as needed on
+      your system.  For example, on my MacOSX system, which uses
+      somewhat different directories than a Linux system, I find
+      it useful to run:
+
+      >>> mimetypes.init(['/private/etc/httpd/mime.types.default',
+      ...                 '/private/etc/httpd/mime.types'])
+
+      Notice that even if you are specifying only one additional
+      configuration file, you must enclose its name inside a
+      list.
+
+  mimetypes.read_mime_types(fname)
+      Read the single file named 'fname' and return a dictionary
+      mapping extensions to MIME types.
+
+      >>> from mimetypes import read_mime_types
+      >>> types = read_mime_types('/private/etc/httpd/mime.types')
+      >>> for _ in range(5): print types.popitem()
+      ...
+      ('.wbxml', 'application/vnd.wap.wbxml')
+      ('.aiff', 'audio/x-aiff')
+      ('.rm', 'audio/x-pn-realaudio')
+      ('.xbm', 'image/x-xbitmap')
+      ('.avi', 'video/x-msvideo')
+
+  ATTRIBUTES:
+
+  mimetypes.common_types
+      Dictionary of widely used, but unofficial MIME types.
+
+  mimetypes.inited
+      True value if the module has been initialized.
+
+  mimetypes.encodings_map
+      Dictionary of encodings.
+
+  mimetypes.knownfiles
+      List of files checked by default.
+
+  mimetypes.suffix_map
+      Dictionary of encoding suffixes.
+
+  mimetypes.types_map
+      Dictionary mapping extensions to MIME types.
+
+
+SECTION 2 -- World Wide Web Applications
+------------------------------------------------------------------------
+
+  TOPIC -- Common Gateway Interface
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE --   cgi : Support for Common Gateway Interface scripts
+  =================================================================
+
+  The module [cgi] provides a number of helpful tools for
+  creating CGI scripts.  There are two elements to CGI,
+  basically: (1) Reading query values. (2) Writing the results
+  back to the requesting browser.  The first of these elements is
+  aided by the [cgi] module, the second is just a matter of
+  formatting suitable text to return.  The [cgi] module contains
+  one class that is its primary interface; it also contains
+  several utility functions that are not documented here because
+  their use is uncommon (and not hard to replicate and customize
+  for your specific needs).  See the _Python Library Reference_
+  for details on the utility functions.
+
+  A CGI PRIMER:
+
+  A primer on the Common Gateway Interface is in order. A CGI
+  script is just an application--in any programming language--that
+  runs on a Web server. The server software recognizes a request
+  for a CGI application, sets up a suitable environment, then
+  passes control to the CGI application. By default, this is done
+  by spawning a new process space for the CGI application to run
+  in, but technologies like [FastCGI] and [mod_python] perform some
+  tricks to avoid extra process creation. These latter techniques
+  speed performance but change little from the point of view of the
+  CGI application creator.
+
+  A Python CGI script is called in exactly the same way any other
+  URL is. The only difference between a CGI and a static URL is
+  that the former is marked as executable by the Web
+  server--conventionally, such scripts are confined to a
+  './cgi-bin/' subdirectory (sometimes another directory name is
+  used); Web servers generally allow you to configure where CGI
+  scripts may live. When a CGI script runs, it is expected to
+  output a 'Content-Type' header to STDOUT, followed by a blank
+  line, then finally some content of the appropriate type--most
+  often an HTML document. That is really all there is to it.
+
+  CGI requests may utilize one of two methods: POST or GET. A POST
+  request sends any associated query data to the STDIN of the CGI
+  script (the Web server sets this up for the script). A GET
+  request puts the query in an environment variable called
+  'QUERY_STRING'. There is not a lot of difference between the two
+  methods, but GET requests encode their query information in a
+  Uniform Resource Identifier (URI), and may therefore be composed
+  without HTML forms and saved/bookmarked. For example, the
+  following is an HTTP GET query to a script example discussed
+  below:
+
+      #*--------------------- HTTP GET request -----------------#
+      <http://gnosis.cx/cgi-bin/simple.cgi?this=that&spam=eggs+are+good>
+
+  You do not actually -need- the [cgi] module to create CGI
+  scripts.  For example, let us look at the script 'simple.cgi'
+  mentioned above:
+
+      #---------------------- simple.cgi -----------------------#
+      #!/usr/bin/python
+      import os,sys
+      print "Content-Type: text/html"
+      print
+      print "<html><head><title>Environment test</title></head><body><pre>"
+      for k,v in os.environ.items():
+          print k, "::",
+          if len(v)<=40: print v
+          else:          print v[:37]+"..."
+      print "&lt;STDIN&gt; ::", sys.stdin.read()
+      print "</pre></body></html>"
+
+  I happen to have composed the above sample query by hand, but
+  you will often call a CGI script from another Web page.  Here is
+  one that does so:
+
+      #----------- http://gnosis.cx/simpleform.html ------------#
+      <html><head><title>Test simple.cgi</title></head><body>
+      <form action="cgi-bin/simple.cgi" method="GET" name="form">
+      <input type="hidden" name="this" value="that">
+      <input type="text" value="" name="spam" size="55" maxlength="256">
+      <input type="submit" value="GET">
+      </form>
+      <form action="cgi-bin/simple.cgi" method="POST" name="form">
+      <input type="hidden" name="this" value="that">
+      <input type="text" value="" name="spam" size="55" maxlength="256">
+      <input type="submit" value="POST">
+      </form>
+      </body></html>
+
+  It turns out that the script 'simple.cgi' is moderately useful;
+  it tells the requester exactly what it has to work with.  For
+  example, the query above (which could be generated exactly by
+  the GET form on 'simpleform.html') returns a Web page that looks
+  like the one below (edited):
+
+      #*------- Response from simple.cgi GET request -----------#
+      DOCUMENT_ROOT :: /www/gnosis
+      HTTP_ACCEPT_ENCODING :: gzip, deflate, compress;q=0.9
+      CONTENT_TYPE :: application/x-www-form-urlencoded
+      SERVER_PORT :: 80
+      REMOTE_ADDR :: 151.203.xxx.xxx
+      SERVER_NAME :: www.gnosis.cx
+      HTTP_USER_AGENT :: Mozilla/5.0 (Macintosh; U; PPC Mac OS...
+      REQUEST_URI :: /cgi-bin/simple.cgi?this=that&spam=eg...
+      QUERY_STRING :: this=that&spam=eggs+are+good
+      SERVER_PROTOCOL :: HTTP/1.1
+      HTTP_HOST :: gnosis.cx
+      REQUEST_METHOD :: GET
+      SCRIPT_NAME :: /cgi-bin/simple.cgi
+      SCRIPT_FILENAME :: /www/gnosis/cgi-bin/simple.cgi
+      HTTP_REFERER :: http://gnosis.cx/simpleform.html
+      <STDIN> ::
+
+  A few environment variables have been omitted, and those
+  available will differ between Web servers and setups.  The most
+  important variable is 'QUERY_STRING'; you may perhaps want to
+  make other decisions based on the requesting 'REMOTE_ADDR',
+  'HTTP_USER_AGENT', or 'HTTP_REFERER' (yes, the variable name is
+  spelled wrong).  Notice that STDIN is empty in this case.
+  However, using the POST form on the sample Web page will give
+  a slightly different response (trimmed):
+
+      #*------- Response from simple.cgi POST request ----------#
+      CONTENT_LENGTH :: 28
+      REQUEST_URI :: /cgi-bin/simple.cgi
+      QUERY_STRING ::
+      REQUEST_METHOD :: POST
+      <STDIN> :: this=that&spam=eggs+are+good
+
+  The 'CONTENT_LENGTH' environment variable is new, 'QUERY_STRING'
+  has become empty, and STDIN contains the query.  The rest of the
+  omitted variables are the same.
+
+  A CGI script need not utilize any query data and need not return
+  an HTML page. For example, on some of my Web pages, I utilize a
+  "Web bug"--a 1x1 transparent gif file that reports back who
+  "looks" at it. Web bugs have a less-honorable use by spammers who
+  send HTML mail and want to verify receipt covertly; but in my
+  case, I only want to check some additional information about
+  visitors to a few of my own Web pages. A Web page might contain,
+  at bottom:
+
+      #*------------- Web bug link on a Web page ----------------#
+      <img src="http://gnosis.cx/cgi-bin/visitor.cgi">
+
+  The script itself is:
+
+      #---------------------- visitor.cgi ----------------------#
+      #!/usr/bin/python
+      import os
+      from sys import stdout
+      addr = os.environ.get("REMOTE_ADDR","Unknown IP Address")
+      agent = os.environ.get("HTTP_USER_AGENT","No Known Browser")
+      fp = open('visitor.log','a')
+      fp.write('%s\t%s\n' % (addr, agent))
+      fp.close()
+      stdout.write("Content-type: image/gif\n\n")
+      stdout.write('GIF89a\001\000\001\000\370\000\000\000\000\000')
+      stdout.write('\000\000\000!\371\004\001\000\000\000\000,\000')
+      stdout.write('\000\000\000\001\000\001\000\000\002\002D\001\000;')
+
+  CLASSES:
+
+  The point where the [cgi] module becomes useful is in
+  automating form processing.  The class `cgi.FieldStorage` will
+  determine the details of whether a POST or GET request was
+  made, and decode the urlencoded query into a dictionary-like
+  object.  You could perform these checks manually, but [cgi]
+  makes it much easier to do.
+
+  cgi.FieldStorage([fp=sys.stdin [,headers [,ob [,environ=os.environ
+    -¯                            [,keep_blank_values=0
+    -¯                             [,strict_parsing=0]]]]]])
+      Construct a mapping object containing query information.
+      You will almost always use the default arguments and
+      construct a standard instance.  A `cgi.FieldStorage` object
+      allows you to use name indexing and also supports several
+      custom methods.  On initialization, the object will
+      determine all relevant details of the current CGI
+      invocation.
+
+      #*--------------- Using cgi.FieldStorage -----------------#
+      import cgi
+      query = cgi.FieldStorage()
+      eggs = query.getvalue('eggs','default_eggs')
+      numfields = len(query)
+      if query.has_key('spam'):
+          spam = query['spam']
+      [...]
+
+      When you retrieve a `cgi.FieldStorage` value by named
+      indexing, what you get is not a string, but either an
+      instance of `cgi.FieldStorage` objects (or maybe
+      `cgi.MiniFieldStorage') or a list of such objects.  The
+      string query is in their '.value' attribute. Since HTML
+      forms may contain multiple fields with the same name,
+      multiple values might exist for a key--a list of such
+      values is returned. The safe way to read the actual
+      strings in queries is to check whether a list is returned:
+
+      #*-------- Checking the type of a query value ------------#
+      if type(eggs) is type([]):  # several eggs
+          for egg in eggs:
+              print "<dt>Egg</dt>\n<dd>", egg.value, "</dd>"
+      else:
+          print "<dt>Eggs</dt>\n<dd>", eggs.value, "</dd>"
+
+      For special circumstances you might wish to change the
+      initialization of the instance by specifying an optional
+      (named) argument.  The argument 'fp' specifies the input
+      stream to read for POST requests.  The argument 'headers'
+      contains a dictionary mapping HTTP headers to
+      values--usually consisting of '{"Content-Type":...}'; the
+      type is determined from the environment if no argument is
+      given.  The argument 'environ' specified where the
+      environment mapping is found.  If you specify a true value
+      for 'keep_blank_values', a key will be included for a blank
+      HTML form field--mapping to an empty string.  If
+      'string_parsing' is specified, a 'ValueError' will be
+      raised if there are any flaws in the query string.
+
+  METHODS:
+
+  The methods '.keys()', '.values()', and '.has_key()' work as with
+  a standard dictionary object. The method '.items()', however, is
+  not supported.
+
+  cgi.FieldStorage.getfirst(key [,default=None])
+      Python 2.2+ has this method to return exactly one string
+      corresponding to the key 'key'.  You cannot rely on which
+      such string value will be returned if multiple submitting
+      HTML form fields have the same name--but you are assured of
+      this method returning a string, not a list.
+
+  cgi.FieldStorage.getlist(key [,default=None])
+      Python 2.2+ has this method to return a list of strings
+      whether there are one or several matches on the key 'key'.
+      This allows you to loop over returned values without
+      worrying about whether they are a list or a single string.
+
+      >>> spam = form.getlist('spam')
+      >>> for s in spam:
+      ...     print s
+
+  cgi.FieldStorage.getvalue(key [,default=None])
+      Return a string or list of strings that are the value(s)
+      corresponding to the key 'key'.  If the argument 'default'
+      is specified, return the specified value in case of key
+      miss.  In contrast to indexing by name, this method
+      retrieves actual strings rather than storage objects with a
+      '.value' attribute.
+
+      >>> import sys, cgi, os
+      >>> from cStringIO import StringIO
+      >>> sys.stdin = StringIO("this=that&this=other&spam=good+eggs")
+      >>> os.environ['REQUEST_METHOD'] = 'POST'
+      >>> form = cgi.FieldStorage()
+      >>> form.getvalue('this')
+      ['that', 'other']
+      >>> form['this']
+      [MiniFieldStorage('this','that'),MiniFieldStorage('this','other')]
+
+  ATTRIBUTES:
+
+  cgi.FieldStorage.file
+      If the object handled is an uploaded file, this attribute
+      gives the file handle for the file.  While you can read the
+      entire file contents as a string from the
+      'cgi.FieldStorage.value' attribute, you may want to read it
+      line-by-line instead.  To do this, use the '.readline()' or
+      '.readlines()' method of the file object.
+
+  cgi.FieldStorage.filename
+      If the object handled is an uploaded file, this attribute
+      contains the name of the file.  An HTML form to upload a
+      file looks something like:
+
+      #*----------- File upload from HTML form -----------------#
+      <form action="upload.cgi" method="POST"
+            enctype="multipart/form-data">
+        Name: <input name="" type="file" size="50">
+        <input type="submit" value="Upload">
+      </form>
+
+      Web browsers typically provide a point-and-click method to
+      fill in a file-upload form.
+
+  cgi.FieldStorage.list
+      This attribute contains the list of mapping object within a
+      `cgi.FieldStorage` object.  Typically, each object in the
+      list is itself a `cgi.MiniStorage` object instead (but this
+      can be complicated if you upload files that themselves
+      contain multiple parts).
+
+      >>> form.list
+      [MiniFieldStorage('this', 'that'),
+      MiniFieldStorage('this', 'other'),
+      MiniFieldStorage('spam', 'good eggs')]
+
+      SEE ALSO, `cgi.FieldStorage.getvalue()`
+
+  cgi.FieldStorage.value
+  cgi.MiniFieldStorage.value
+      The string value of a storage object.
+
+  SEE ALSO, [urllib], [cgitb], [dict]
+
+  =================================================================
+    MODULE -- cgitb : Traceback manager for CGI scripts
+  =================================================================
+
+  Python 2.2 added a useful little module for debugging CGI
+  applications.  You can download it for earlier Python versions
+  from <http://lfw.org/python/cgitb.py>.  A basic difficulty with
+  developing CGI scripts is that their normal output is sent to
+  STDOUT, which is caught by the underlying Web server and
+  forwarded to an invoking Web browser.  However, when a
+  traceback occurs due to a script error, that output is sent to
+  STDERR (which is hard to get at in a CGI context).  A more
+  useful action is either to log errors to server storage or
+  display them in the client browser.
+
+  Using the [cgitb] module to examine CGI script errors is almost
+  embarrassingly simple.  At the top of your CGI script, simply
+  include the lines:
+
+      #------------- Traceback enabled CGI script --------------#
+      import cgitb
+      cgitb.enable()
+
+  If any exceptions are raised, a pretty, formatted report is
+  produced (and possibly logged to a name starting with '@').
+
+  METHODS:
+
+  cgitb.enable([display=1 [,logdir=None [context=5]]])
+      Turn on traceback reporting.  The argument 'display'
+      controls whether an error report is sent to the
+      browser--you might not want this to happen in a production
+      environment, since users will have little idea what to
+      make of such a report (and there may be security issues in
+      letting them see it).  If 'logdir' is specified, tracebacks
+      are logged into files in that directory.  The argument
+      'context' indicates how many lines of code are displayed
+      surrounding the point where an error occurred.
+
+  For earlier versions of Python, you will have to do your own
+  error catching.  A simple approach is:
+
+      #---------- Debugging CGI script in Python -------------#
+      import sys
+      sys.stderr = sys.stdout
+      def main():
+          import cgi
+          # ...do the actual work of the CGI...
+          # perhaps ending with:
+          print template % script_dictionary
+      print "Content-type: text/html\n\n"
+      main()
+
+  This approach is not bad for quick debugging; errors go back to
+  the browser. Unfortunately, though, the traceback (if one occurs)
+  gets displayed as HTML, which means that you need to go to "View
+  Source" in a browser to see the original line breaks in the
+  traceback. With a few more lines, we can add a little extra
+  sophistication.
+
+      #------- Debugging/logging CGI script in Python --------#
+      import sys, traceback
+      print "Content-type: text/html\n\n"
+      try:               # use explicit exception handling
+          import my_cgi  # main CGI functionality in 'my_cgi.py'
+          my_cgi.main()
+      except:
+          import time
+          errtime = '--- '+ time.ctime(time.time()) +' ---\n'
+          errlog = open('cgi_errlog', 'a')
+          errlog.write(errtime)
+          traceback.print_exc(None, errlog)
+          print "<html>\n<head>"
+          print "<title>CGI Error Encountered!</title>\n</head>"
+          print "<body><p>A problem was encountered running MyCGI</p>"
+          print "<p>Please check the server error log for details</p>"
+          print "</body></html>"
+
+  The second approach is quite generic as a wrapper for any real
+  CGI functionality we might write.  Just 'import' a different
+  CGI module as needed, and maybe make the error messages more
+  detailed or friendlier.
+
+  SEE ALSO, [cgi]
+
+
+  TOPIC -- Parsing, Creating, and Manipulating HTML Documents
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE -- htmlentitydefs : HTML character entity references
+  =================================================================
+
+  The module [htmlentitydefs] provides a mapping between
+  ISO-8859-1 characters and the symbolic names of corresponding
+  HTML 2.0 entity references.  Not all HTML named entities have
+  equivalents in the ISO-8859-1 character set; in such cases,
+  names are mapped the HTML numeric references instead.
+
+  ATTRIBUTES:
+
+  htmlentitydefs.entitydefs
+      A dictionary mapping symbolic names to character entities.
+
+      >>> import htmlentitydefs
+      >>> htmlentitydefs.entitydefs['omega']
+      '&#969;'
+      >>> htmlentitydefs.entitydefs['uuml']
+      '\xfc'
+
+  For some purposes, you might want a reverse dictionary to find
+  the HTML entities for ISO-8859-1 characters.
+
+      >>> from htmlentitydefs import entitydefs
+      >>> iso8859_1 = dict([(v,k) for k,v in entitydefs.items()])
+      >>> iso8859_1['\xfc']
+      'uuml'
+
+  =================================================================
+    MODULE -- HTMLParser : Simple HTML and XHTML parser
+  =================================================================
+
+  The module [HTMLParser] is an event-based framework for
+  processing HTML files. In contrast to [htmllib], which is based
+  on [sgmllib], [HTMLParser] simply uses some regular expressions
+  to identify the parts of an HTML document--starttag, text,
+  endtag, comment, and so on. The different internal
+  implementation, however, makes little difference to users of the
+  modules.
+
+  I find the module [HTMLParser] much more straightforward to use
+  than [htmllib], and therefore [HTMLParser] is documented in
+  detail in this book, while [htmllib] is not. While [htmllib] more
+  or less -requires- the use of the ancillary module [formatter] to
+  operate, there is no extra difficultly in letting [HTMLParser]
+  make calls to a formatter object. You might want to do this, for
+  example, if you have an existing formatter/writer for a complex
+  document format.
+
+  Both [HTMLParser] and [htmllib] provide an interface that is
+  very similar to that of 'SAX' or 'expat' XML parsers.  That is,
+  a document--HTML or XML--is processed purely as a sequence of
+  events, with no data structure created to represent the
+  document as a whole.  For XML documents, another processing API
+  is the Document Object Model (DOM), which treats the document as
+  an in-memory hierarchical data structure.
+
+  In principle, you could use [xml.sax] or [xml.dom] to process
+  HTML documents that conformed with XHTML--that is, tightened up
+  HTML that is actually an XML application The problem is that very
+  little existing HTML is XHTML compliant. A syntactic issue is
+  that HTML does not require closing tags in many cases, where
+  XML/XHTML requires every tag to be closed. But implicit closing
+  tags can be inferred from subsequent opening tags (e.g., with
+  certain names). A popular tool like 'tidy' does an excellent job
+  of cleaning up HTML in this way. The more significant problem is
+  semantic. A whole lot of actually existing HTML is quite lax
+  about tag matching--Web browsers that successfully display the
+  majority of Web pages are quite complex software projects.
+
+  For example, a snippet like that below is quite likely to occur
+  in HTML you come across:
+
+      #*------------- Snippet of oddly nested HTML -------------#
+      <p>The <a href="http://ietf.org">IETF admonishes:
+         <i>Be lenient in what you <b>accept</i></a>.</b>
+
+  If you know even a little HTML, you know that the author of this
+  snippet presumably wanted the whole quote in italics, the word
+  'accept' in bold. But converting the snippet into a data
+  structure such as a DOM object is difficult to generalize.
+  Fortunately, [HTMLParser] is fairly lenient about what it will
+  process; however, for sufficiently badly formed input (or any
+  other problem), the module will raise the exception
+  'HTMLParser.HTMLParseError'.
+
+  SEE ALSO, `htmllib`, `xml.sax`
+
+  CLASSES:
+
+  HTMLParser.HTMLParser()
+      The [HTMLParser] module contains the single class
+      `HTMLParser.HTMLParser`.  The class itself is fairly useful,
+      since it does not actually do anything when it encounters
+      any event.  Utilizing `HTMLParser.HTMLParser()` is a matter
+      of subclassing it and providing methods to handle the events
+      you are interested in.
+
+      If it is important to keep track the structural position
+      of the current event within the document, you will need to
+      maintain a data structure with this information.  If you are
+      certain that the document you are processing is well-formed
+      XHTML, a stack suffices.  For example:
+
+      #------------------ HTMLParser_stack.py ------------------#
+      #!/usr/bin/env python
+      import HTMLParser
+      html = """<html><head><title>Advice</title></head><body>
+      <p>The <a href="http://ietf.org">IETF admonishes:
+         <i>Be strict in what you <b>send</b>.</i></a></p>
+      </body></html>
+      """
+      tagstack = []
+      class ShowStructure(HTMLParser.HTMLParser):
+          def handle_starttag(self, tag, attrs): tagstack.append(tag)
+          def handle_endtag(self, tag): tagstack.pop()
+          def handle_data(self, data):
+              if data.strip():
+                  for tag in tagstack: sys.stdout.write('/'+tag)
+                  sys.stdout.write(' >> %s\n' % data[:40].strip())
+      ShowStructure().feed(html)
+
+      Running this optimistic parser produces:
+
+      #*--------------- HTMLParser_stack output ----------------#
+      % ./HTMLParser_stack.py
+      /html/head/title >> Advice
+      /html/body/p >> The
+      /html/body/p/a >> IETF admonishes:
+      /html/body/p/a/i >> Be strict in what you
+      /html/body/p/a/i/b >> send
+      /html/body/p/a/i >> .
+
+      You could, of course, use this context information however
+      you wished when processing a particular bit of content (or
+      when you process the tags themselves).
+
+      A more pessimistic approach is to maintain a "fuzzy"
+      tagstack.  We can define a new object that will remove the
+      most recent starttag corresponding to an endtag and will
+      also prevent '<p>' and '<blockquote>' tags from nesting if
+      no corresponding endtag is found.  You could do more along
+      this line for a production application, but a class like
+      'TagStack' makes a good start:
+
+      #*--------------- TagStack class example -----------------#
+      class TagStack:
+          def __init__(self, lst=[]): self.lst = lst
+          def __getitem__(self, pos): return self.lst[pos]
+          def append(self, tag):
+              # Remove every paragraph-level tag if this is one
+              if tag.lower() in ('p','blockquote'):
+                  self.lst = [t for t in self.lst
+                                if t not in ('p','blockquote')]
+              self.lst.append(tag)
+          def pop(self, tag):
+              # "Pop" by tag from nearest pos, not only last item
+              self.lst.reverse()
+              try:
+                  pos = self.lst.index(tag)
+              except ValueError:
+                  raise HTMLParser.HTMLParseError, "Tag not on stack"
+              del self.lst[pos]
+              self.lst.reverse()
+      tagstack = TagStack()
+
+      This more lenient stack structure suffices to parse badly
+      formatted HTML like the example given in the module
+      discussion.
+
+  METHODS AND ATTRIBUTES:
+
+  HTMLParser.HTMLParser.close()
+      Close all buffered data, and treat any current data as if
+      an EOF was encountered.
+
+  HTMLParser.HTMLParser.feed(data)
+      Send some additional HTML data to the parser instance, from
+      the string in the argument 'data'.  You may feed the
+      instance with whatever size chunks of data you wish, and
+      each will be processed, maintaining the previous state.
+
+  HTMLParser.HTMLParser.getpos()
+      Return the current line number and offset.  Generally
+      called within a '.handle_*()' method to report or analyze
+      the state of the processing of the HTML text.
+
+  HTMLParser.HTMLParser.handle_charref(name)
+      Method called when a character reference is encountered,
+      such as '&#971;'.  Character references may be interspersed
+      with element text, much as with entity references.  You can
+      construct a Unicode character from a character reference,
+      and you may want to pass the Unicode (or raw character
+      reference) to `HTMLParser.HTMLParser.handle_data()`.
+
+      #*-------------- Call back to .handle_data() -------------#
+      class CharacterData(HTMLParser.HTMLParser):
+          def handle_charref(self, name):
+              import unicodedata
+              char = unicodedata.name(unichr(int(name)))
+              self.handle_data(char)
+          [...other methods...]
+
+  HTMLParser.HTMLParser.handle_comment(data)
+      Method called when a comment is encountered.  HTML comments
+      begin with '<!--' and end with '-->'.  The argument 'data'
+      contains the contents of the comment.
+
+  HTMLParser.HTMLParser.handle_data(data)
+      Method called when content data is encountered.  All the
+      text between tags is contained in the argument 'data', but
+      if character or entity references are interspersed with
+      text, the respective handler methods will be called in an
+      interspersed fashion.
+
+  HTMLParser.HTMLParser.handle_decl(data)
+      Method called when a declaration is encountered.  HTML
+      declarations with '<!' and end with '>'.  The argument
+      'data' contains the contents of the comment. Syntactically,
+      comments look like a type of declaration, but are handled by
+      the `HTMLParser.HTMLParser.handle_comment()` method.
+
+  HTMLParser.HTMLParser.handle_endtag(tag)
+      Method called when an endtag is encountered.  The argument
+      'tag' contains the tag name (without brackets).
+
+  HTMLParser.HTMLParser.handle_entityref(name)
+      Method called when an entity reference is encountered, such
+      as '&amp;'.  When entity references occur in the middle of
+      an element text, calls to this method are interspersed with
+      calls to `HTMLParser.HTMLParser.handle_data()`.  In many
+      cases, you will want to call the latter method with decoded
+      entities; for example:
+
+      #*-------------- Call back to .handle_data() -------------#
+      class EntityData(HTMLParser.HTMLParser):
+          def handle_entityref(self, name):
+              import htmlentitydefs
+              self.handle_data(htmlentitydefs.entitydefs[name])
+          [...other methods...]
+
+  HTMLParser.HTMLParser.handle_pi(data)
+      Method called when a processing instruction (PI) is
+      encountered. PIs begin with '<?' and end with '?>'.  They
+      are less common in HTML than in XML, but are allowed.  The
+      argument 'data' contains the contents of the PI.
+
+  HTMLParser.HTMLParser.handle_startendtag(tag, attrs)
+      Method called when an XHTML-style empty tag is
+      encountered, such as:
+
+      #*----------------- Closed empty tag ---------------------#
+      <img src="foo.png" alt="foo"/>
+
+      The arguments 'tag' and 'attrs' are identical to those
+      passed to `HTMLParser.HTMLParser.handle_starttag()`.
+
+  HTMLParser.HTMLParser.handle_starttag(tag, attrs)
+      Method called when a starttag is encountered.  The argument
+      'tag' contains the tag name (without brackets), and the
+      argument 'attrs' contains the tag attributes as a list of
+      pairs, such as '[("href","http://ietf.org")]'.
+
+  HTMLParser.HTMLParser.lasttag
+      The last tag--start or end--that was encountered.
+      Generally maintaining some sort of stack structure like
+      those discussed is more useful.  But this attribute is
+      available automatically.  You should treat it as read-only.
+
+  HTMLParser.HTMLParser.reset()
+      Restore the instance to its initial state, lose any
+      unprocessed data (for example, content within unclosed
+      tags).
+
+
+  TOPIC -- Accessing Internet Resources
+  --------------------------------------------------------------------
+
+  =================================================================
+    MODULE -- urllib : Open an arbitrary URL
+  =================================================================
+
+  The module [urllib] provides convenient, high-level access to
+  resources on the Internet. While [urllib] lets you connect to a
+  variety of protocols, to manage low-level details of
+  connections--especially issues of complex authentication--you
+  should use the module [urllib2] instead. However, [urllib] -does-
+  provide hooks for HTTP basic authentication.
+
+  The interface to [urllib] objects is file-like. You can
+  substitute an object representing a URL connection for almost any
+  function or class that expects to work with a read-only file. All
+  of the World Wide Web, File Transfer Protocol (FTP) directories,
+  and gopherspace can be treated, almost transparently, as if it
+  were part of your local filesystem.
+
+  Although the module provides two classes that can be utilized or
+  subclassed for more fine-tuned control, generally in practice the
+  function `urllib.urlopen()` is the only interface you need to the
+  [urllib] module.
+
+  FUNCTIONS:
+
+  urllib.urlopen(url [,data])
+      Return a file-like object that connects to the Uniform
+      Resource Locator (URL) resource named in 'url'.  This
+      resource may be an HTTP, FTP, Gopher, or local file.  The
+      optional argument 'data' can be specified to make a POST
+      request to an HTTP URL.  This data is a urlencoded string,
+      which may be created by the `urllib.urlencode()` method.
+      If no 'postdata' is specified with an HTTP URL, the GET
+      method is used.
+
+      Depending on the type of resource specified, a slightly
+      different class is used to construct the instance, but
+      each provides the methods: '.read()', '.readline()',
+      '.readlines()', '.fileno()', '.close()', '.info()' and
+      '.geturl()' (but not '.xreadlines()', '.seek()', or
+      '.tell()').
+
+      Most of the provided methods are shared by file objects,
+      and each provides the same interface--arguments and return
+      values--as actual file objects.  The method '.geturl()'
+      simply contains the URL that the object connects to,
+      usually the same string as the 'url' argument.
+
+      The method '.info()' returns `mimetools.Message` object.
+      While the [mimetools] module is not documented in detail in
+      this book, this object is generally similar to an
+      `email.Message.Message` object--specifically, it responds
+      to both the built-in `str()` function and dictionary-like
+      indexing:
+
+      >>> u = urllib.urlopen('urlopen.py')
+      >>> print `u.info()`
+      <mimetools.Message instance at 0x62f800>
+      >>> print u.info()
+      Content-Type: text/x-python
+      Content-Length: 577
+      Last-modified: Fri, 10 Aug 2001 06:03:04 GMT
+
+      >>> u.info().keys()
+      ['last-modified', 'content-length', 'content-type']
+      >>> u.info()['content-type']
+      'text/x-python'
+
+      SEE ALSO, `urllib.urlretrieve()`, `urllib.urlencode()`
+
+  urllib.urlretrieve(url [,fname [,reporthook [,data]]])
+      Save the resources named in the argument 'url' to a local
+      file.  If the optional argument 'fname' is specified, that
+      filename will be used; otherwise, a unique temporary
+      filename is generated.  The optional argument 'data' may
+      contain a urlencoded string to pass to an HTTP POST
+      request, as with `urllib.urlopen()`.
+
+      The optional argument 'reporthook' may be used to specify a
+      callback function, typically to implement a progress meter
+      for downloads.  The function 'reporthook()' will be called
+      repeatedly with the arguments 'bl_transferred', 'bl_size',
+      and 'file_size'.  Even remote files smaller than the block
+      size will typically call 'reporthook()' a few times, but
+      for larger files, 'file_size' will -approximately- equal
+      'bl_transferred*bl_size'.
+
+      The return value of `urllib.urlretrieve()` is a pair
+      '(fname,info)'.  The returned 'fname' is the name of the
+      created file--the same as the 'fname' argument if it was
+      specified.  The 'info' return value is a `mimetools.Message`
+      object, like that returned by the '.info()' method of a
+      `urllib.urlopen` object.
+
+      SEE ALSO, `urllib.urlopen()`, `urllib.urlencode()`
+
+  urllib.quote(s [,safe="/"])
+      Return a string with special characters escaped.  Exclude
+      any characters in the string 'safe' for being quoted.
+
+      >>> urllib.quote('/~username/special&odd!')
+      '/%7Eusername/special%26odd%21'
+
+  urllib.quote_plus(s [,safe="/"])
+      Same as `urllib.quote()`, but encode spaces as '+' also.
+
+  urllib.unquote(s)
+      Return an unquoted string.  Inverse operation of
+      `urllib.quote()`.
+
+  urllib.unquote_plus(s)
+      Return an unquoted string.  Inverse operation of
+      `urllib.quote_plus()`.
+
+  urllib.urlencode(query)
+      Return a urlencoded query for an HTTP POST or GET request.
+      The argument 'query' may be either a dictionary-like object
+      or a sequence of pairs.  If pairs are used, their order is
+      preserved in the generated query.
+
+      >>> query = urllib.urlencode([('hl','en'),
+      ...                           ('q','Text Processing in Python')])
+      >>> print query
+      hl=en&q=Text+Processing+in+Python
+      >>> u = urllib.urlopen('http://google.com/search?'+query)
+
+      Notice, however, that at least as of the moment of this
+      writing, Google will refuse to return results on this
+      request because a Python shell is not a recognized browser
+      (Google provides a SOAP interface that is more lenient,
+      however).  You -could-, but -should not-, create a custom
+      [urllib] class that spoofed an accepted browser.
+
+  CLASSES:
+
+  You can change the behavior of the basic `urllib.urlopen()` and
+  `urllib.urlretrieve()` functions by substituting your own class
+  into the module namespace.  Generally this is the best way to
+  use [urllib] classes:
+
+      #*------------ Opening URLs with a custom class ----------#
+      import urllib
+      class MyOpener(urllib.FancyURLopener):
+          pass
+      urllib._urlopener = MyOpener()
+      u = urllib.urlopen("http://some.url")   # uses custom class
+
+  urllib.URLopener([proxies [,**x509]])
+      Base class for reading URLs.  Generally you should subclass
+      from `urllib.FancyURLopener` unless you need to implement a
+      nonstandard protocol from scratch.
+
+      The argument 'proxies' may be specified with a mapping if
+      you need to connect to resources through a proxy.  The
+      keyword arguments may be used to configure HTTPS
+      authentication; specifically, you should give named
+      arguments 'key_file' and 'cert_file' in this case.
+
+      #*-------- specifying proxies and authentication ---------#
+      import urllib
+      proxies = {'http':'http://192.168.1.1','ftp':'ftp://192.168.256.1'}
+      urllib._urlopener = urllib.URLopener(proxies, key_file='mykey',
+                                           cert_file='mycert')
+
+  urllib.FancyURLopener([proxies [,**x509]])
+      The optional initialization arguments are the same as for
+      `urllib.URLopener`, unless you subclass further to use
+      other arguments.  This class knows how to handle 301 and
+      302 HTTP redirect codes, as well as 401 authentication
+      requests.  The class `urllib.FancyURLopener` is the one
+      actually used by the [urllib] module, but you may subclass
+      it to add custom capabilities.
+
+  METHODS AND ATTRIBUTES:
+
+  urllib.URLFancyopener.get_user_passwd(host, realm)
+      Return the pair '(user,passwd)' to use for authentication.
+      The default implementation calls the method
+      '.prompt_user_passwd()' in turn.  In a subclass you might
+      want to either provide a GUI login interface or obtain
+      authentication information from some other source, such as
+      a database.
+
+  urllib.URLopener.open(url [,data])
+  urllib.URLFancyopener.open(url [,data])
+      Open the URL 'url', optionally using HTTP POST query 'data'.
+
+      SEE ALSO, `urllib.urlopen()`
+
+  urllib.URLopener.open_unknown(url [,data])
+  urllib.URLFancyopener.open_unknown(url [,data])
+      If the scheme is not recognized, the '.open()' method
+      passes the request to this method.  You can implement error
+      reporting or fallback behavior here.
+
+  urllib.URLFancyopener.prompt_user_passwd(host, realm)
+      Prompt for the authentication pair '(user,passwd)' at the
+      terminal.  You may override this to prompt within a GUI.
+      If the authentication is not obtained interactively, but by
+      other means, directly overriding '.get_user_passwd()' is
+      more logical.
+
+  urllib.URLopener.retrieve(url [,fname [,reporthook [,data]]])
+  urllib.URLFancyopener.retrieve(url [,fname [,reporthook [,data]]])
+      Copies the URL 'url' to the local file named 'fname'.
+      Callback to the progress function 'reporthook' if
+      specified.  Use the optional HTTP POST query data in
+      'data'.
+
+      SEE ALSO, `urllib.urlretrieve()`
+
+  urllib.URLopener.version
+  urllib.URFancyLopener.version
+      The User Agent string reported to a server is contained in
+      this attribute.  By default it is 'urllib/###', where the
+      [urllib] version number is used rather than '###'.
+
+  =================================================================
+    MODULE -- urlparse : Parse Uniform Resource Locators
+  =================================================================
+
+  The module [urlparse] support just one fairly simple task, but
+  one that is just complicated enough for quick implementations to
+  get wrong. URLs describe a number of aspects of resources on the
+  Internet: access protocol, network location, path, parameters,
+  query, and fragment. Using [urlparse], you can break out and
+  combine these components to manipulate or generate URLs. The
+  format of URLs is based on RFC-1738, RFC-1808, and RFC-2396.
+
+  Notice that [urlparse] does not parse the components of the
+  network location, but merely returns them as a field.  For
+  example, 'ftp://guest:gnosis@192.168.1.102:21//tmp/MAIL.MSG'
+  is a valid identifier on my local network (at least at the
+  moment this is written).  Tools like Mozilla and wget are happy
+  to retrieve this file.  Parsing this fairly complicated URL
+  with [urlparse] gives us:
+
+      >>> import urlparse
+      >>> url = 'ftp://guest:gnosis@192.168.1.102:21//tmp/MAIL.MSG'
+      >>> urlparse.urlparse(url)
+      ('ftp', 'guest:gnosis@192.168.1.102:21', '//tmp/MAIL.MSG',
+      '', '', '')
+
+  While this information is not incorrect, this network location
+  itself contains multiple fields; all but the host are optional.
+  The actual structure of a network location, using square
+  bracket nesting to indicate optional components, is:
+
+      #*------------- Diagram of network location --------------#
+      [user[:password]@]host[:port]
+
+  The following mini-module will let you further parse these
+  fields:
+
+      #------------------ location_parse.py --------------------#
+      #!/usr/bin/env python
+      def location_parse(netloc):
+          "Return tuple (user, passwd, host, port) for netloc"
+          if '@' not in netloc:
+              netloc = ':@' + netloc
+          login, net = netloc.split('@')
+          if ':' not in login:
+              login += ':'
+          user, passwd = login.split(':')
+          if ':' not in net:
+              net += ':'
+          host, port = net.split(':')
+          return (user, passwd, host, port)
+
+      #-- specify network location on command-line
+      if __name__=='__main__':
+          import sys
+          print location_parse(sys.argv[1])
+
+  FUNCTIONS:
+
+  urlparse.urlparse(url [,def_scheme="" [,fragments=1]])
+      Return a tuple consisting of six components of the URL
+      'url', '(scheme, netloc, path, params, query, fragment)'.
+      A URL is assumed to follow the pattern
+      'scheme://netloc/path;params?query#fragment'.  If a default
+      scheme 'def_scheme' is specified, that string will be
+      returned in case no scheme is encoded in the URL itself.
+      If 'fragments' is set to a false value, any fragments will
+      not be split from other fields.
+
+      >>> from urlparse import urlparse
+      >>> urlparse('gnosis.cx/path/sub/file.html#sect', 'http', 1)
+      ('http', '', 'gnosis.cx/path/sub/file.html', '', '', 'sect')
+      >>> urlparse('gnosis.cx/path/sub/file.html#sect', 'http', 0)
+      ('http', '', 'gnosis.cx/path/sub/file.html#sect', '', '', '')
+      >>> urlparse('http://gnosis.cx/path/file.cgi?key=val#sect',
+      ...          'gopher', 1)
+      ('http', 'gnosis.cx', '/path/file.cgi', '', 'key=val', 'sect')
+      >>> urlparse('http://gnosis.cx/path/file.cgi?key=val#sect',
+      ...          'gopher', 0)
+      ('http', 'gnosis.cx', '/path/file.cgi', '', 'key=val#sect', '')
+
+  urlparse.urlunparse(tup)
+      Construct a URL from a tuple containing the fields returned
+      by `urlparse.urlparse()`.  The returned URL has canonical
+      form (redundancy eliminated) so `urlparse.urlparse()` and
+      `urlparse.urlunparse()` are not precisely inverse
+      operations; however, the composed 'urlunparse(urlparse(s))'
+      should be idempotent.
+
+  urlparse.urljoin(base, file)
+      Return a URL that has the same base path as 'base', but has
+      the file component 'file'.  For example:
+
+      >>> from urlparse import urljoin
+      >>> urljoin('http://somewhere.lan/path/file.html',
+      ...                  'sub/other.html')
+      'http://somewhere.lan/path/sub/other.html'
+
+  In Python 2.2+ the functions `urlparse.urlsplit()` and
+  `urlparse.urlunsplit()` are available.  These differ from
+  `urlparse.urlparse()` and `urlparse.urlunparse()` in returning
+  a 5-tuple that does not split out 'params' from 'path'.
+
+
+SECTION 3 -- Synopses of Other Internet Modules
+------------------------------------------------------------------------
+
+  There are a variety of Internet-related modules in the standard
+  library that will not be covered here in their specific usage. In
+  the first place, there are two general aspects to writing
+  Internet applications. The first aspect is the parsing,
+  processing, and generation of messages that conform to various
+  protocol requirements. These tasks are solidly inside the realm
+  of text processing and should be covered in this book. The second
+  aspect, however, are the issues of actually sending a message
+  "over the wire": choosing ports and network protocols,
+  handshaking, validation, and so on. While these tasks are
+  important, they are outside the scope of this book. The synopses
+  below will point you towards appropriate modules, though; the
+  standard documentation, Python interactive help, or other texts
+  can help with the details.
+
+  A second issue comes up also, moreover. As Internet
+  standards--usually canonicalized in RFCs--have evolved, and as
+  Python libraries have become more versatile and robust, some
+  newer modules have superceded older ones. In a similar way, for
+  example, the [re] module replaced the older [regex] module. In
+  the interests of backwards compatibility, Python has not dropped
+  any Internet modules from its standard distributions.
+  Nonetheless, the [email] module represents current "best
+  practice" for most tasks related to email and newsgroup message
+  handling. The modules [mimify], [mimetools], [MimeWriter],
+  [multifile], and [rfc822] are likely to be utilized in existing
+  code, but for new applications, it is better to use the
+  capabilities in [email] in their stead.
+
+  As well as standard library modules, a few third-party tools
+  deserve special mention (at the bottom of this section). A large
+  number of Python developers have created tools for various
+  Internet-related tasks, but a small number of projects have
+  reached a high degree of sophistication and a widespread usage.
+
+  TOPIC -- Standard Internet-Related Tools
+  --------------------------------------------------------------------
+
+  asyncore
+      Asynchronous socket service clients and servers.
+
+  Cookie
+      Manage Web browser cookies.  Cookies are a common mechanism
+      for managing state in Web-based applications.  RFC-2109 and
+      RFC-2068 describe the encoding used for cookies, but in
+      practice MSIE is not very standards compliant, so the
+      parsing is relaxed in the [Cookie] module.
+
+      SEE ALSO, [cgi], `httplib`
+
+  email.Charset
+      Work with character set encodings at a fine-tuned level.
+      Other modules within the [email] package utilize this
+      module to provide higher-level interfaces.  If you need to
+      dig deeply into character set conversions, you might want
+      to use this module directly.
+
+      SEE ALSO, [email], [email.Header], `unicode`, [codecs]
+
+  ftplib
+      Support for implementing custom file transfer protocol
+      (FTP) clients.  This protocol is detailed in RFC-959.
+      For a full FTP application, [ftplib] provides a very
+      good starting point; for the simple capability to
+      retrieve publicly accessible files over FTP,
+      `urllib.urlopen()` is more direct.
+
+      SEE ALSO, [urllib], `urllib2`
+
+  gopherlib
+      Gopher protocol client interface.  As much as I am still
+      personally fond of the gopher protocol, it is used so
+      rarely that it is not worth documenting here.
+
+  httplib
+      Support for implementing custom Web clients.  Higher-level
+      access to the HTTP and HTTPS protocols than using raw
+      [sockets] on ports 80 or 443, but lower-level, and more
+      communications oriented, than using the higher-level
+      [urllib] to access Web resources in a file-like way.
+
+      SEE ALSO, [urllib], `socket`
+
+  ic, icopen
+      Internet access configuration (Macintosh).
+
+  icopen
+      Internet Config replacement for 'open()' (Macintosh).
+
+  imghdr
+      Recognize image file formats based on their first few
+      bytes.
+
+  mailcap
+      Examine the 'mailcap' file on Unix-like systems.  The files
+      '/etc/mailcap', '/usr/etc/mailcap', '/usr/local/etc/mailcap,
+      and '$HOME/.mailcap' are typically used to configure MIME
+      capabilities in client applications like mail readers and
+      Web browsers (but less so now than a few years ago).  See
+      RFC-1524.
+
+  mhlib
+      Interface to MH mailboxes.  The MH format consists of a
+      directory structure that mirrors the folder organization of
+      message.  Each message is contained in its own file.  While
+      the MH format is in many ways -better-, the Unix mailbox
+      format seems to be more widely used.  Basic access to a
+      single folder in an MH hierarchy can be achieved with the
+      `mailbox.MHMailbox` class, which satisfies most working
+      requirements.
+
+      SEE ALSO, [mailbox], [email]
+
+  mimetools
+      Various tools used by MIME-reading or MIME-writing programs.
+
+  MimeWriter
+      Generic MIME writer.
+
+  mimify
+      Mimification and unmimification of mail messages.
+
+  netrc
+      Examine the 'netrc' file on Unix-like systems.  The file
+      '$HOME/.netrc' are typically used to configure FTP clients.
+
+      SEE ALSO, `ftplib`, [urllib]
+
+  nntplib
+      Support for Network News Transfer Protocol (NNTP) client
+      applications.  This protocol is defined in RFC-977.
+      Although Usenet has a different distribution system from
+      email, the message format of NNTP messages still follows
+      the format defined in RFC-822.  In particular, the [email]
+      package, or the [rfc822] module, are useful for creating
+      and modifying news messages.
+
+      SEE ALSO, [email], `rfc822`
+
+  nsremote
+      Wrapper around Netscape OSA modules (Macintosh).
+
+  rfc822
+      RFC-822 message manipulation class.  The [email] package is
+      intended to supercede [rfc822], and it is better to use
+      [email] for new application development.
+
+      SEE ALSO, [email], [poplib], [mailbox], [smtplib]
+
+  select
+      Wait on I/O completion, such as sockets.
+
+  sndhdr
+      Recognize sound file formats based on their first few
+      bytes.
+
+  socket
+      Low-level interface to BSD sockets.  Used to communicate
+      with IP addresses at the level underneath protocols like
+      HTTP, FTP, POP3, Telnet, and so on.
+
+      SEE ALSO, `ftplib`, `gopherlib`, `httplib`, [imaplib],
+                `nntplib`, [poplib], [smtplib], `telnetlib`
+
+  SocketServer
+      Asynchronous I/O on sockets.  Under Unix, pipes can also be
+      monitored with [select].  [socket] supports SSL in recent
+      Python versions.
+
+  telnetlib
+      Support for implementing custom telnet clients.  This
+      protocol is detailed in RFC-854.  While possibly useful for
+      intranet applications, Telnet is an entirely unsecured
+      protocol and should not really be used on the Internet.
+      Secure Shell (SSH) is an encrypted protocol that otherwise
+      is generally similar in capability to Telnet.  There is no
+      support for SSH in the Python standard library, but
+      third-party options exist, such as [pyssh].  At worst, you
+      can script an SSH client using a tool like the third-party
+      [pyexpect].
+
+  urllib2
+      An enhanced version of the [urllib] module that adds
+      specialized classes for a variety of protocols.  The main
+      focus of [urllib2] is the handling of authentication and
+      encryption methods.
+
+      SEE ALSO, [urllib]
+
+  Webbrowser
+      Remote-control interfaces to some browsers.
+
+  TOPIC -- Third-Party Internet-Related Tools
+  --------------------------------------------------------------------
+
+  There are many very fine Internet-related tools that this book
+  cannot discuss, but to which no slight is intended.  A good
+  index to such tools is the relevant page at the Vaults of
+  Parnassus:
+
+    <http://py.vaults.ca/apyllo.py/812237977>
+
+  Quixote
+      In brief, [Quixote] is a templating system for HTML
+      delivery.  More so than systems like PHP, ASP, and JSP to
+      an extent, [Quixote] puts an emphasis on Web application
+      structure more than page appearance.  The home page for
+      [Quixote] is <http://www.mems-exchange.org/software/quixote/>
+
+  Twisted
+      To describe [Twisted], it is probably best simply to quote
+      from Twisted Matrix Laboratories' Web site
+      <http://www.twistedmatrix.com/>:
+
+      "Twisted is a framework, written in Python, for writing
+      networked applications.  It includes implementations of a
+      number of commonly used network services such as a Web
+      server, an IRC chat server, a mail server, a relational
+      database interface and an object broker.  Developers can
+      build applications using all of these services as well as
+      custom services that they write themselves.  Twisted also
+      includes a user authentication system that controls access
+      to services and provides services with user context
+      information to implement their own security models."
+
+      While [Twisted] overlaps significantly in purpose with
+      [Zope], [Twisted] is generally lower-level and more modular
+      (which has both pros and cons).  Some protocols supported
+      by [Twisted]--usually both server and client--and
+      implemented in pure Python are  SSH; FTP; HTTP; NNTP;
+      SOCKSv4; SMTP; IRC; Telnet; POP3; AOL's instant messaging
+      TOC; OSCAR, used by AOL-IM as well as ICQ; DNS; MouseMan;
+      finger; Echo, discard, chargen, and friends; Twisted
+      Perspective Broker, a remote object protocol; and XML-RPC.
+
+  Zope
+      [Zope] is a sophisticated, powerful, and just plain
+      -complicated- Web application server.  It incorporates
+      everything from dynamic page generation, to database
+      interfaces, to Web-based administration, to back-end
+      scripting in several styles and languages.  While the
+      learning curve is steep, experienced Zope developers can
+      develop and manage Web applications more easily, reliably,
+      and faster than users of pretty much any other technology.
+
+      The home page for Zope is <http://zope.org/>.
+
+SECTION 4 -- Understanding XML
+------------------------------------------------------------------------
+
+  Extensible Markup Language (XML) is a text format increasingly
+  used for a wide variety of storage and transport requirements.
+  Parsing and processing XML is an important element of many text
+  processing applications. This section discusses the most common
+  techniques for dealing with XML in Python. While XML held an
+  initial promise of simplifying the exchange of complex and
+  hierarchically organized data, it has itself grown into a
+  standard of considerable complexity. This book will not cover
+  most of the API details of XML tools; an excellent book dedicated
+  to that subject is:
+
+    _Python & XML_, Christopher A. Jones & Fred L. Drake, Jr.,
+    O'Reilly 2002. ISBN: 0-596-00128-2.
+
+  The XML format is sufficiently rich to represent any structured
+  data, some forms more straightforwardly than others. A task that
+  XML is quite natural at is in representing marked-up
+  text--documentation, books, articles, and the like--as is its
+  parent SGML. But XML is probably used more often to represent
+  -data- than texts--record sets, OOP data containers, and so on.
+  In many of these cases, the fit is more awkward and requires
+  extra verbosity. XML itself is more like a metalanguage than a
+  language--there are a set of syntax constraints that any XML
+  document must obey, but typically particular APIs and document
+  formats are defined as XML -dialects-. That is, a dialect
+  consists of a particular set of tags that are used within a type
+  of document, along with rules for when and where to use those
+  tags. What I refer to as an XML dialect is also sometimes more
+  formally called "an -application- of XML."
+
+  THE DATA MODEL:
+
+  At base, XML has two ways to represent data. Attributes in XML
+  tags map names to values. Both names and values are Unicode
+  strings (as are XML documents as a whole), but values frequently
+  encode other basic datatypes, especially when specified in W3C
+  XML Schemas. Attribute names are mildly restricted by the special
+  characters used for XML markup; attribute values can encode any
+  strings once a few characters are properly escaped. XML attribute
+  values are whitespace normalized when parsed, but whitespace can
+  itself also be escaped. A bare example is:
+
+      >>> from xml.dom import minidom
+      >>> x = '''<x a="b" d="e   f g" num="38" />'''
+      >>> d = minidom.parseString(x)
+      >>> d.firstChild.attributes.items()
+      [(u'a', u'b'), (u'num', u'38'), (u'd', u'e   f g')]
+
+  As with a Python dictionary, no order is defined for the list
+  of key/value attributes of one tag.
+
+  The second way XML represents data is by nesting tags inside
+  other tags.  In this context, a tag together with a corresponding
+  "close tag" is called an -element-, and it may contain an
+  ordered sequence of -subelements-.  The subelements themselves
+  may also contain nested subelements.  A general term for any
+  part of an XML document, whether an element, an attribute, or
+  one of the special parts discussed below, is a "node."  A
+  simple example of an element that contains some subelements is:
+
+      >>> x = '''<?xml version="1.0" encoding="UTF-8"?>
+      ... <root>
+      ...   <a>Some data</a>
+      ...   <b data="more data" />
+      ...   <c data="a list">
+      ...     <d>item 1</d>
+      ...     <d>item 2</d>
+      ...   </c>
+      ... </root>'''
+      >>> d = minidom.parseString(x)
+      >>> d.normalize()
+      >>> for node in d.documentElement.childNodes:
+      ...     print node
+      ...
+      <DOM Text node "
+        ">
+      <DOM Element: a at 7033280>
+      <DOM Text node "
+        ">
+      <DOM Element: b at 7051088>
+      <DOM Text node "
+        ">
+      <DOM Element: c at 7053696>
+      <DOM Text node "
+      ">
+      >>> d.documentElement.childNodes[3].attributes.items()
+      [(u'data', u'more data')]
+
+  There are several things to notice about the Python session
+  above.
+
+  1.  The "document element," named 'root' in the example,
+      contains three ordered subelement nodes, named 'a', 'b',
+      and 'c'.
+
+  2.  Whitespace is preserved within elements.  Therefore the
+      spaces and newlines that come between the subelements make
+      up several text nodes.  Text and subelements can intermix,
+      each potentially meaningful.  Spacing in XML documents is
+      significant, but it is nonetheless also often used for
+      visual clarity (as above).
+
+  3.  The example contains an XML declaration, '<?xml...?>',
+      which is optional but generally included.
+
+  4.  Any given element may contain attributes -and- subelements
+      -and- text data.
+
+  OTHER XML FEATURES:
+
+  Besides regular elements and text nodes, XML documents can
+  contain several kinds of "special" nodes.  Comments are common
+  and useful, especially in documents intended to be hand edited
+  at some point (or even potentially).  Processing instructions
+  may indicate how a document is to be handled.  Document type
+  declarations may indicate expected validity rules for where
+  elements and attributes may occur.  A special type of node
+  called CDATA lets you embed mini-XML documents or other
+  special codes inside of other XML documents, while leaving
+  markup untouched.  Examples of each of these forms look like:
+
+      #*------------- XML document with special nodes ----------#
+      <?xml version="1.0" ?>
+      <!DOCTYPE root SYSTEM "sometype.dtd">
+      <root>
+      <!-- This is a comment -->
+      This is text data inside the &lt;root&gt; element
+      <![CDATA[Embedded (not well-formed) XML:
+               <this><that> >>string<< </that>]]>
+      </root>
+
+  XML documents may be either "well-formed" or "valid." The first
+  characterization simply indicates that a document obeys the
+  proper syntactic rules for XML documents in general: All tags are
+  either self-closed or followed by a matching endtag; reserved
+  characters are escaped; tags are properly hierarchically nested;
+  and so on. Of course, particular documents can also fail to be
+  well-formed--but in that case they are not XML documents sensu
+  stricto, but merely fragments or near-XML. A formal description
+  of well-formed XML can be found at <http://www.w3.org/TR/REC-xml>
+  and <http://www.w3.org/TR/xml11/>.
+
+  Beyond well-formedness, some XML documents are also valid.
+  Validity means that a document matches a further grammatical
+  specification given in a Document Type Definition (DTD), or
+  in an XML Schema.  The most popular style of XML Schema is the
+  W3C XML Schema specification, found in formal detail at
+  <http://www.w3.org/TR/xmlschema-0/>, and in linked documents.
+  There are competing schema specifications, however--one popular
+  alternative is RELAX NG, which is documented at
+  <http://www.oasis-open.org/committees/relax-ng/>.
+
+  The grammatical specifications indicated by DTDs are strictly
+  structural.  For example, you can specify that certain
+  subelements must occur within an element, with a certain
+  cardinality and order.  Or, certain attributes may or must
+  occur with a certain tag.  As a simple case, the following DTD
+  is one that the prior example of nested subelements would
+  conform to.  There are an infinite number of DTDs that the
+  sample -could- match, but each one describes a slightly
+  different -range- of valid XML documents:
+
+      #*-------- DTD for simple subelement XML document --------#
+      <!ELEMENT root ((a|OTHER-A)?, b, c*)>
+      <!ELEMENT a (#PCDATA)>
+      <!ELEMENT b EMPTY>
+      <!ATTLIST b data CDATA #REQUIRED
+                  NOT-THERE (this|that) #IMPLIED>
+      <!ELEMENT c (d+)>
+      <!ATTLIST c data CDATA #IMPLIED>
+      <!ELEMENT d (#PCDATA)>
+
+  The W3C recommendation on the XML standard also formally
+  specifies DTD rules. A few features of the above DTD example can
+  be noted here. The element 'OTHER-A' and the attribute
+  'NOT-THERE' are permitted by this DTD, but were not utilized in
+  the previous sample XML document. The quantifications '?', '*',
+  and '+'; the alternation '|'; and the comma sequence operator
+  have similar meaning as in regular expressions and BNF grammars.
+  Attributes may be required or optional as well and may contain
+  any of several specific value types; for example, the 'data'
+  attribute must contain any string, while the 'NOT-THERE'
+  attribute may contain 'this' or 'that' only.
+
+  Schemas go farther than DTDs, in a way. Beyond merely specifying
+  that elements or attributes must contain strings describing
+  particular datatypes, such as numbers or dates, schemas allow
+  more flexible quantification of subelement occurrences. For
+  example, the following W3C XML Schema might describe an XML
+  document for purchases:
+
+      #*--------- XML Schema "item" Element Definition ---------#
+      <xsd:element name="item">
+        <xsd:complexType>
+          <xsd:sequence>
+            <xsd:element name="USPrice"  type="xsd:decimal"/>
+            <xsd:element name="shipDate" type="xsd:date"
+                         minOccurs="0" maxOccurs=3 />
+          </xsd:sequence>
+          <xsd:attribute name="partNum" type="SKU"/>
+        </xsd:complexType>
+      </xsd:element>
+      <!-- Stock Keeping Unit, a code for identifying products -->
+      <xsd:simpleType name="SKU">
+         <xsd:restriction base="xsd:string">
+            <xsd:pattern value="\d{3}-[A-Z]{2}"/>
+         </xsd:restriction>
+      </xsd:simpleType>
+
+  An XML document that is valid under this schema is:
+
+      #*------------- Order info XML document ------------------#
+      <item partNum="123-XQ">
+        <USPrice>21.95</USPrice>
+        <shipDate>2002-11-26</shipDate>
+      </item>
+
+  Formal specifications of schema languages can be found at the
+  above-mentioned URLs; this example is meant simply to
+  illustrate the types of capabilities they have.
+
+  In order to check the validity of an XML document to a DTD or
+  schema, you need to use a -validating parser-.  Some stand-alone
+  tools perform validation, generally with diagnostic messages in
+  cases of invalidity.  As well, certain libraries and modules
+  support validation within larger applications.  As a rule,
+  however, -most- Python XML parsers are nonvalidating and
+  check only for well-formedness.
+
+  Quite a number of technologies have been built on top of XML,
+  many endorsed and specified by W3C, OASIS, or other standards
+  groups. One in particular that you should be aware of is XSLT.
+  There are a number of thick books available that discuss XSLT,
+  so the matter is too complex to document here. But in shortest
+  characterization, XSLT is a declarative programming language
+  whose syntax is itself an XML application. An XML document is
+  processed using a set of rules in an XSLT stylesheet, to produce
+  a new output, often a different XML document. The elements in an
+  XSLT stylesheet each describe a pattern that might occur in a
+  source document and contain an output block that will be
+  produced if that pattern in encountered. That is the simple
+  characterization, anyway; in the details, "patterns" can have
+  loops, recursions, calculations, and so on. I find XSLT to be
+  more complicated than genuinely powerful and would rarely choose
+  the technology for my own purposes, but you are fairly likely to
+  encounter existing XSLT processes if you work with existing XML
+  applications.
+
+
+  TOPIC -- Python Standard Library XML Modules
+  --------------------------------------------------------------------
+
+  There are two principle APIs for accessing and manipulating XML
+  documents that are in widespread use: DOM and SAX. Both are
+  supported in the Python standard library, and these two APIs
+  make up the bulk of Python's XML support.  Both of these APIs
+  are programming language neutral, and using them in other
+  languages is substantially similar to using them in Python.
+
+  The Document Object Model (DOM) represents an XML document as a
+  tree of -nodes-.  Nodes may be of several types--a document
+  type declaration, processing instructions, comments, elements,
+  and attribute maps--but whatever the type, they are arranged in
+  a strictly nested hierarchy.  Typically, nodes have children
+  attached to them; of course, some nodes are -leaf nodes-
+  without children.  The DOM allows you to perform a variety of
+  actions on nodes: delete nodes, add nodes, find sibling nodes,
+  find nodes by tag name, and other actions.  The DOM itself
+  does not specify anything about how an XML document is
+  transformed (parsed) into a DOM representation, nor about how a
+  DOM can be serialized to an XML document.  In practice,
+  however, all DOM libraries--including [xml.dom]--incorporate
+  these capabilities.  Formal specification of DOM can be found
+  at:
+
+    <http://www.w3.org/DOM/>
+
+  and:
+
+    <http://www.w3.org/TR/2000/REC-DOM-Level-2-Core-20001113/>.
+
+  The Simple API for XML (SAX) is an -event-based- API for XML
+  documents. Unlike DOM, which envisions XML as a rooted tree of
+  nodes, SAX sees XML as a sequence of events occurring linearly in
+  a file, text, or other stream. SAX is a very minimal interface,
+  both in the sense of telling you very little inherently about the
+  -structure- of an XML documents, and also in the sense of being
+  extremely memory friendly. SAX itself is forgetful in the sense
+  that once a tag or content is processed, it is no longer in
+  memory (unless you manually save it in a data structure).
+  However, SAX does maintain a basic stack of tags to assure
+  well-formedness of parsed documents. The module [xml.sax] raises
+  exceptions in case of problems in well-formedness; you may define
+  your own custom error handlers for these. Formal specification of
+  SAX can be found at:
+
+    <http://www.saxproject.org/>.
+
+  -*-
+
+  xml.dom
+      The module [xml.dom] is a Python implementation of most of
+      the W3C Document Object Model, Level 2.  As much as
+      possible, its API follows the DOM standard, but a few
+      Python conveniences are added as well.  A brief example of
+      usage is below:
+
+      >>> from xml.dom import minidom
+      >>> dom = minidom.parse('address.xml')
+      >>> addrs = dom.getElementsByTagName('address')
+      >>> print addrs[1].toxml()
+      <address city="New York" number="344" state="NY" street="118 St."/>
+      >>> jobs = dom.getElementsByTagName('job-info')
+      >>> for key, val in jobs[3].attributes.items():
+      ...     print key,'=',val
+      ...
+      employee-type = Part-Time
+      is-manager = no
+      job-description = Hacker
+
+      SEE ALSO, `gnosis.xml.objectify`
+
+  xml.dom.minidom
+      The module [xml.dom.minidom] is a lightweight DOM
+      implementation built on top of SAX.  You may pass in a
+      custom SAX parser object when you parse an XML document;
+      by default, [xml.dom.minidom] uses the fast, nonvalidating
+      [xml.parser.expat] parser.
+
+  xml.dom.pulldom
+      The module [xml.dom.pulldom] is a DOM implementation that
+      conserves memory by only building the portions of a DOM
+      tree that are requested by calls to accessor methods.  In
+      some cases, this approach can be considerably faster than
+      building an entire tree with [xml.dom.minidom] or another
+      DOM parser; however, the [xml.dom.pulldom] remains somewhat
+      underdocumented and experimental at the time of this
+      writing.
+
+  xml.parsers.expat
+      Interface to the 'expat' nonvalidating XML parser.  Both
+      [xml.sax] and [xml.dom.minidom] utilize the services of the
+      fast 'expat' parser, whose functionality lives mostly in a
+      C library.  You can use [xml.parser.expat] directly if you
+      wish, but since the interface uses the same general
+      event-driven style of the standard [xml.sax], there is
+      usually no reason to.
+
+  xml.sax
+      The package [xml.sax] implements the Simple API for XML.
+      By default, [xml.sax] relies on the underlying
+      [xml.parser.expat] parser, but any parser supporting a set
+      of interface methods may be used instead.  In particular,
+      the validating parser [xmlproc] is included in the [PyXML]
+      package.
+
+      When you create a SAX application, your main task is to
+      create one or more callback handlers that will process
+      events generated during SAX parsing.  The most important
+      handler is a 'ContentHandler', but you may also define a
+      'DTDHandler', 'EntityResolver', or 'ErrorHandler'.
+      Generally you will specialize the base handlers in
+      [xml.sax.handler] for your own applications.  After
+      defining and registering desired handlers, you simply call
+      the '.parse()' method of the parser that you registered
+      handlers with.  Or alternately, for incremental processing,
+      you can use the 'feed()' method.
+
+      A simple example illustrates usage.  The application below
+      reads in an XML file and writes an equivalent, but not
+      necessarily identical, document to STDOUT.  The output can
+      be used as a canonical form of the document:
+
+      #------------------------- xmlcat.py ---------------------#
+      #!/usr/bin/env python
+      import sys
+      from xml.sax import handler, make_parser
+      from xml.sax.saxutils import escape
+      
+      class ContentGenerator(handler.ContentHandler):
+          def __init__(self, out=sys.stdout):
+              handler.ContentHandler.__init__(self)
+              self._out = out
+          def startDocument(self):
+              xml_decl = '<?xml version="1.0" encoding="iso-8859-1"?>\n'
+              self._out.write(xml_decl)
+          def endDocument(self):
+              sys.stderr.write("Bye bye!\n")
+          def startElement(self, name, attrs):
+              self._out.write('<' + name)
+              name_val = attrs.items()
+              name_val.sort()                 # canonicalize attributes
+              for (name, value) in name_val:
+                  self._out.write(' %s="%s"' % (name, escape(value)))
+              self._out.write('>')
+          def endElement(self, name):
+              self._out.write('</%s>' % name)
+          def characters(self, content):
+              self._out.write(escape(content))
+          def ignorableWhitespace(self, content):
+              self._out.write(content)
+          def processingInstruction(self, target, data):
+              self._out.write('<?%s %s?>' % (target, data))
+      
+      if __name__=='__main__':
+          parser = make_parser()
+          parser.setContentHandler(ContentGenerator())
+          parser.parse(sys.argv[1])
+
+  xml.sax.handler
+      The module [xml.sax.handler] defines classes
+      'ContentHandler', 'DTDHandler', 'EntityResolver' and
+      'ErrorHandler' that are normally used as parent classes of
+      custom SAX handlers.
+
+  xml.sax.saxutils
+      The module [xml.sax.saxutils] contains utility functions
+      for working with SAX events.  Several functions allow
+      escaping and munging special characters.
+
+  xml.sax.xmlreader
+      The module [xml.sax.xmlreader] provides a framework for
+      creating new SAX parsers that will be usable by the
+      [xml.sax] module.  Any new parser that follows a set of API
+      conventions can be plugged in to the
+      `xml.sax.make_parser()` class factory.
+
+  xmllib
+      Deprecated module for XML parsing.  Use [xml.sax] or other
+      XML tools in Python 2.0+.
+
+  xmlrpclib
+  SimpleXMLRPCServer
+      XML-RPC is an XML-based protocol for remote procedure
+      calls, usually layered over HTTP.  For the most part, the
+      XML aspect is hidden from view.  You simply use the
+      module [xmlrpclib] to call remote methods and the module
+      [SimpleXMLRPCServer] to implement your own server that
+      supports such method calls.  For example:
+
+      >>> import xmlrpclib
+      >>> betty = xmlrpclib.Server("http://betty.userland.com")
+      >>> print betty.examples.getStateName(41)
+      South Dakota
+
+      The XML-RPC format itself is a bit verbose, even as XML
+      goes.  But it is simple and allows you to pass argument
+      values to a remote method:
+
+      >>> import xmlrpclib
+      >>> print xmlrpclib.dumps((xmlrpclib.True,37,(11.2,'spam')))
+      <params>
+      <param>
+      <value><boolean>1</boolean></value>
+      </param>
+      <param>
+      <value><int>37</int></value>
+      </param>
+      <param>
+      <value><array><data>
+      <value><double>11.199999999999999</double></value>
+      <value><string>spam</string></value>
+      </data></array></value>
+      </param>
+      </params>
+
+      SEE ALSO, `gnosis.xml.pickle`
+
+  TOPIC -- Third-Party XML-Related Tools
+  --------------------------------------------------------------------
+
+  A number of projects extend the XML capabilities in the Python
+  standard library. I am the principle author of several
+  XML-related modules that are distributed with the [gnosis]
+  package. Information on the current release can be found at:
+
+    <http://gnosis.cx/download/Gnosis_Utils.ANNOUNCE>.
+
+  The package itself can be downloaded as a [distutils] package
+  tarball from:
+
+    <http://gnosis.cx/download/Gnosis_Utils-current.tar.gz>.
+
+  The Python XML-SIG (special interest group) produces a package
+  of XML tools known as [PyXML].  The work of this group is
+  incorporated into the Python standard library with new Python
+  releases--not every [PyXML] tool, however, makes it into the
+  standard library.  At any given moment, the most
+  sophisticated--and often experimental--capabilities can be
+  found by downloading the latest [PyXML] package.  Be aware that
+  installing the latest [PyXML] overrides the default Python XML
+  support and may break other tools or applications.
+
+    <http://pyxml.sourceforge.net/>
+
+  Fourthought, Inc. produces the [4Suite] package, which contains
+  a number of XML tools.  Fourthought releases [4Suite] as free
+  software, and many of its capabilities are incorporated into the
+  [PyXML] project (albeit at a varying time delay); however,
+  Fourthought is a for-profit company that also offers
+  customization and technical support for [4Suite].  The
+  community page for [4Suite] is:
+
+    <http://4suite.org/index.xhtml>.
+
+  The Fourthought company Web site is:
+
+    <http://fourthought.com/>.
+
+  Two other modules are discussed briefly below. Neither of these
+  are XML tools per se. However, both [PYX] and [yaml] fill many
+  of the same requirements as XML does, while being easier to
+  manipulate with text processing techniques, easier to read, and
+  easier to edit by hand. There is a contrast between these two
+  formats, however. [PYX] is semantically identical to XML, merely
+  using a different syntax. YAML, on the other hand, has a quite
+  different semantics from XML--I present it here because in many
+  of the concrete applications where developers might instinctively
+  turn to XML (which has a lot of "buzz"), YAML is a better
+  choice.
+
+  The home page for [PYX] is:
+
+    <http://pyxie.sourceforge.net/>.
+
+  I have written an article explaining PYX in more detail than in
+  this book at:
+
+    <http://gnosis.cx/publish/programming/xml_matters_17.html>.
+
+  The home page for YAML is:
+
+    <http://yaml.org>.
+
+  I have written an article contrasting the utility and
+  semantics of YAML and XML at:
+
+    <http://gnosis.cx/publish/programming/xml_matters_23.html>.
+
+  -*-
+
+  gnosis.xml.indexer
+      The module [gnosis.xml.indexer] builds on the full-text
+      indexing program presented as an example in Chapter 2 (and
+      contained in the [gnosis] package as [gnosis.indexer]).
+      Instead of file contents, [gnosis.xml.indexer] creates
+      indices of (large) XML documents.  This allows for a kind
+      of "reverse XPath" search.  That is, where a tool like
+      [4xpath], in the [4Suite] package, lets you see the
+      contents of an XML node specified by XPath,
+      [gnosis.xml.indexer] identifies the XPaths to the point
+      where a word or words occur.  This module may be used
+      either in a larger application or as a command-line tool;
+      for example:
+
+      #*------------ gnosis.xml.indexer search -----------------#
+      % indexer symmetric
+      ./crypto1.xml::/section[2]/panel[8]/title
+      ./crypto1.xml::/section[2]/panel[8]/body/text_column/code_listing
+      ./crypto1.xml::/section[2]/panel[7]/title
+      ./crypto2.xml::/section[4]/panel[6]/body/text_column/p[1]
+      4 matched wordlist: ['symmetric']
+      Processed in 0.100 seconds (SlicedZPickleIndexer)
+
+      #*------ Limit matches to ones in a title element --------#
+      % indexer "-filter=*::/*/title" symmetric
+      ./crypto1.xml::/section[2]/panel[8]/title
+      ./crypto1.xml::/section[2]/panel[7]/title
+      2 matched wordlist: ['symmetric']
+      Processed in 0.080 seconds (SlicedZPickleIndexer)
+
+      Indexed searches, as the example shows, are very fast.  I
+      have written an article with more details on this module:
+
+      <http://gnosis.cx/publish/programming/xml_matters_10.html>.
+
+  gnosis.xml.objectify
+      The module [gnosis.xml.objectify] transforms arbitrary XML
+      documents into Python objects that have a "native" feel to
+      them.  Where XML is used to encode a data structure, I
+      believe that using [gnosis.xml.objectify] is the quickest
+      and simplest way to utilize that data in a Python
+      application.
+
+      The Document Object Model defines an OOP model for
+      working with XML, across programming languages.  But while
+      DOM is nominally object-oriented, its access methods are
+      distinctly un-Pythonic.  For example, here is a typical
+      "drill down" to a DOM value (skipping whitespace text
+      nodes for some indices, which is far from obvious):
+
+      >>> from xml.dom import minidom
+      >>> dom_obj = minidom.parse('address.xml')
+      >>> dom_obj.normalize()
+      >>> print dom_obj.documentElement.childNodes[1].childNodes[3]\
+      ...                              .attributes.get('city').value
+      Los Angeles
+
+      In contrast, [gnosis.xml.objectify] feels like you are
+      using Python:
+
+      >>> from gnosis.xml.objectify import XML_Objectify
+      >>> xml_obj = XML_Objectify('address.xml')
+      >>> py_obj = xml_obj.make_instance()
+      >>> py_obj.person[2].address.city
+      u'Los Angeles'
+
+  gnosis.xml.pickle
+      The module [gnosis.xml.pickle] lets you serialize
+      arbitrary Python objects to an XML format.  In most
+      respects, the purpose is the same as for the [pickle]
+      module, but an XML target is useful for certain purposes.
+      You may process the data in an xml_pickle using standard
+      XML parsers, XSLT processors, XML editors, validation
+      utilities, and other tools.
+
+      In several respects, [gnosis.xml.pickle] offers
+      finer-grained control than the standard [pickle] module
+      does. You can control security permissions accurately; you
+      can customize the representation of object types within an
+      XML file; you can substitute compatible classes during the
+      pickle/unpickle cycle; and several other "guru-level"
+      manipulations are possible.  However, in basic usage,
+      [gnosis.xml.pickle] is fully API compatible with [pickle].
+      An example illustrates both the usage and the format:
+
+      >>> class Container: pass
+      ...
+      >>> inst = Container()
+      >>> dct = {1.7:2.5, ('t','u','p'):'tuple'}
+      >>> inst.this, inst.num, inst.dct = 'that', 38, dct
+      >>> import gnosis.xml.pickle
+      >>> print gnosis.xml.pickle.dumps(inst)
+      <?xml version="1.0"?>
+      <!DOCTYPE PyObject SYSTEM "PyObjects.dtd">
+      <PyObject module="__main__" class="Container" id="5999664">
+      <attr name="this" type="string" value="that" />
+      <attr name="dct" type="dict" id="6008464" >
+        <entry>
+          <key type="tuple" id="5973680" >
+            <item type="string" value="t" />
+            <item type="string" value="u" />
+            <item type="string" value="p" />
+          </key>
+          <val type="string" value="tuple" />
+        </entry>
+        <entry>
+          <key type="numeric" value="1.7" />
+          <val type="numeric" value="2.5" />
+        </entry>
+      </attr>
+      <attr name="num" type="numeric" value="38" />
+      </PyObject>
+
+      SEE ALSO, [pickle], [cPickle], `yaml`, [pprint]
+
+  gnosis.xml.validity
+      The module [gnosis.xml.validity] allows you to define Python
+      container classes that restrict their containment according
+      to XML validity constraints.  Such validity-enforcing
+      classes -always- produce string representations that are
+      valid XML documents, not merely well-formed ones.  When you
+      attempt to add an item to a [gnosis.xml.validity] container
+      object that is not permissible, a descriptive exception is
+      raised.  Constraints, as with DTDs, may specify
+      quantification, subelement types, and sequence.
+
+      For example, suppose you wish to create documents that
+      conform with a "dissertation" Document Type Definition:
+
+      #------------------ dissertation.dtd ----------------------#
+      <!ELEMENT dissertation (dedication?, chapter+, appendix*)>
+      <!ELEMENT dedication (#PCDATA)>
+      <!ELEMENT chapter (title, paragraph+)>
+      <!ELEMENT title (#PCDATA)>
+      <!ELEMENT paragraph (#PCDATA | figure | table)+>
+      <!ELEMENT figure EMPTY>
+      <!ELEMENT table EMPTY>
+      <!ELEMENT appendix (#PCDATA)>
+
+      You can use [gnosis.xml.validity] to assure your
+      application produced only conformant XML documents. First,
+      you create a Python version of the DTD:
+
+      #----------------- dissertation.py ---------------------#
+      from gnosis.xml.validity import *
+      class appendix(PCDATA):   pass
+      class table(EMPTY):       pass
+      class figure(EMPTY):      pass
+      class _mixedpara(Or):     _disjoins = (PCDATA, figure, table)
+      class paragraph(Some):    _type = _mixedpara
+      class title(PCDATA):      pass
+      class _paras(Some):       _type = paragraph
+      class chapter(Seq):       _order = (title, _paras)
+      class dedication(PCDATA): pass
+      class _apps(Any):         _type = appendix
+      class _chaps(Some):       _type = chapter
+      class _dedi(Maybe):       _type = dedication
+      class dissertation(Seq):  _order = (_dedi, _chaps, _apps)
+
+      Next, import your Python validity constraints, and use them
+      in an application:
+
+      >>> from dissertation import *
+      >>> chap1 = LiftSeq(chapter,('About Validity','It is a good thing'))
+      >>> paras_ch1 = chap1[1]
+      >>> paras_ch1 += [paragraph('OOP can enforce it')]
+      >>> print chap1
+      <chapter><title>About Validity</title>
+      <paragraph>It is a good thing</paragraph>
+      <paragraph>OOP can enforce it</paragraph>
+      </chapter>
+
+      If you attempt an action that violates constraints, you get
+      a relevant exception; for example:
+
+      >>> try:
+      ..     paras_ch1.append(dedication("To my advisor"))
+      .. except ValidityError, x:
+      ...    print x
+      Items in _paras must be of type <class 'dissertation.paragraph'>
+      (not <class 'dissertation.dedication'>)
+
+  PyXML
+      The [PyXML] package contains a number of capabilities in
+      advance of those in the Python standard library.  [PyXML]
+      was at version 0.8.1 at the time this was written, and as
+      the number indicates, it remains an in-progress/beta
+      project.  Moreover, as of this writing, the last released
+      version of Python was 2.2.2, with 2.3 in preliminary
+      stages.  When you read this, [PyXML] will probably be at a
+      later number and have new features, and some of the current
+      features will have been incorporated into the standard
+      library.  Exactly what is where is a moving target.
+
+      Some of the significant features currently available in
+      [PyXML] but not in the standard library are listed below.
+      You may install [PyXML] on any Python 2.0+ installation,
+      and it will override the existing XML support.
+
+      *** A validating XML parser written in Python called
+      [xmlproc].  Being a pure Python program rather than a C
+      extension, [xmlproc] is slower than [xml.sax] (which uses
+      the underlying [expat] parser).
+
+      *** A SAX extension called [xml.sax.writers] that will
+      reserialize SAX events to either XML or other formats.
+
+      *** A fully compliant DOM Level 2 implementation called
+      [4DOM], borrowed from [4Suite].
+
+      *** Support for canonicalization.  That is, two XML
+      documents can be semantically identical even though they
+      are not byte-wise identical.  You have freedom in choice of
+      quotes, attribute orders, character entities, and some
+      spacing that change nothing about the -meaning- of the
+      document.  Two canonicalized XML documents are semantically
+      identical if and only if they are byte-wise identical.
+
+      *** XPath and XSLT support, with implementations written in
+      pure Python.  There are faster XSLT implementations around,
+      however, that call C extensions.
+
+      *** A DOM implementation that supports lazy instantiation
+      of nodes, called [xml.dom.pulldom], has been incorporated
+      into recent versions of the standard library.  For older
+      Python versions, this is available in [PyXML].
+
+      *** A module with several options for serializing Python
+      objects to XML.  This capability is comparable to
+      [gnosis.xml.pickle], but I like the tool I created better
+      in several ways.
+
+  PYX
+      PYX is both a document format and a Python module to
+      support working with that format.  As well as the Python
+      module, tools written in C are available to transform
+      documents between XML and PYX format.
+
+      The idea behind PYX is to eliminate the need for complex
+      parsing tools like [xml.sax].  Each node in an XML document
+      is represented, in the PYX format on a separate line, using
+      a prefix character to indicate the node type.  Most of XML
+      semantics is preserved, with the exception of document type
+      declarations, comments, and namespaces.  These features
+      could be incorporated into an updated PYX format, in
+      principle.
+
+      Documents in the PYX format are easily processed using
+      traditional line-oriented text processing tools like 'sed',
+      'grep', 'awk', 'sort', 'wc', and the like.  Python
+      applications that use a basic `FILE.readline()` loop are
+      equally able to process PYX nodes, one per line.  This
+      makes it much easier to use familiar text processing
+      programming styles with PYX than it is with XML.  A brief
+      example illustrates the PYX format:
+
+      #*------------------ PYX format example ------------------#
+      % cat test.xml
+      <?xml version="1.0"?>
+      <?xml-stylesheet href="test.css" type="text/css"?>
+      <Spam flavor="pork">
+        <Eggs>Some text about eggs.</Eggs>
+        <MoreSpam>Ode to Spam (spam="smoked-pork")</MoreSpam>
+      </Spam>
+      % ./xmln test.xml
+      ?xml-stylesheet href="test.css" type="text/css"
+      (Spam
+      Aflavor pork
+      -\n
+      (Eggs
+      -Some text about eggs.
+      )Eggs
+      -\n
+      (MoreSpam
+      -Ode to Spam (spam="smoked-pork")
+      )MoreSpam
+      -\n
+      )Spam
+
+  4Suite
+      The tools in [4Suite] focus on the use of XML documents for
+      knowledge management.  The server element of the [4Suite]
+      software is useful for working with catalogs of XML
+      documents, searching them, transforming them, and so on.
+      The base [4Suite] tools address a variety of XML
+      technologies.  In some cases [4Suite] implements standards
+      and technologies not found in the Python standard library
+      or in [PyXML], while in other cases [4Suite] provides more
+      advanced implementations.
+
+      Among the XML technologies implemented in [4Suite] are DOM,
+      RDF, XSLT, XInclude, XPointer, XLink and XPath, and SOAP.
+      Among these, of particular note is [4xslt] for performing
+      XSLT transformations.  [4xpath] lets you find XML nodes
+      using concise and powerful XPath descriptions of how to
+      reach them.  [4rdf] deals with "meta-data" that documents
+      use to identify their semantic characteristics.
+
+      I detail [4Suite] technologies in a bit more detail in an
+      article at:
+
+      <http://gnosis.cx/publish/programming/xml_matters_15.html>
+
+  yaml
+      The native data structures of object-oriented programming
+      languages are not straightforward to represent in XML.
+      While XML is in principle powerful enough to represent any
+      compound data, the only inherent mapping in XML is within
+      attributes--but that only maps strings to strings.
+      Moreover, even when a suitable XML format is found for a
+      given data structure, the XML is quite verbose and
+      difficult to scan visually, or especially to edit manually.
+
+      The YAML format is designed to match the structure of
+      datatypes prevalent in scripting languages: Python, Perl,
+      Ruby, and Java all have support libraries at the time of
+      this writing.  Moreover, the YAML format is extremely
+      concise and unobtrusive--in fact, the acronym cutely
+      stands for "YAML Ain't Markup Language."  In many ways,
+      YAML can act as a better pretty-printer than [pprint],
+      while simultaneously working as a format that can be used
+      for configuration files or to exchange data between
+      different programming languages.
+
+      There is no fully general and clean way, however, to
+      convert between YAML and XML.  You can use the [yaml]
+      module to read YAML data files, then use the
+      [gnosis.xml.pickle] module to read and write to one
+      particular XML format.  But when XML data starts out in
+      other XML dialects than [gnosis.xml.pickle], there are
+      ambiguities about the best Python native and YAML
+      representations of the same data.  On the plus side--and
+      this can be a very big plus--there is essentially a
+      straightforward and one-to-one correspondence between
+      Python data structures and YAML representations.
+
+      In the YAML example below, refer back to the same Python
+      instance serialized using [gnosis.xml.pickle] and [pprint]
+      in their respective discussions.  As with
+      [gnosis.xml.pickle]--but in this case unlike [pprint]--the
+      serialization can be read back in to re-create an identical
+      object (or to create a different object after editing the
+      text, by hand or by application).
+
+      >>> class Container: pass
+      ...
+      >>> inst = Container()
+      >>> dct = {1.7:2.5, ('t','u','p'):'tuple'}
+      >>> inst.this, inst.num, inst.dct = 'that', 38, dct
+      >>> import yaml
+      >>> print yaml.dump(inst)
+      --- !!__main__.Container
+      dct:
+          1.7: 2.5
+          ?
+              - t
+              - u
+              - p
+      : tuple
+      num: 38
+      this: that
+
+      SEE ALSO, [pprint], `gnosis.xml.pickle`
+

@@ -1,0 +1,373 @@
+APPENDIX -- A STATE MACHINE FOR ADDING MARKUP TO TEXT
+-------------------------------------------------------------------
+
+  This book was written entirely in plaintext editors, using a set
+  of conventions I call "smart ASCII." In spirit and appearance,
+  smart ASCII resembles the informal markup that has developed on
+  email and Usenet. In fact, I have used an evolving version of the
+  format for a number of years to produce articles, tutorials, and
+  other documents. The book required a few additional conventions
+  in the earlier smart ASCII format, but only a few. It was a
+  toolchain that made almost all the individual typographic and
+  layout decisions. Of course, that toolchain only came to exist
+  through many hours of programming and debugging by me and by
+  other developers.
+
+  The printed version of this book used tools I wrote in Python to
+  assemble the chapters, frontmatter, and endmatter, and then to
+  add LaTeX markup codes to the text. A moderate number of custom
+  LaTeX macros are included in that markup. From there, the work of
+  other people lets me convert LaTeX source into the PDF format
+  Addison-Wesley can convert into printed copies.
+
+  For information on the smart ASCII format, see the discussions
+  of it in several places in this book, chiefly in Chapter 4.
+  You may also download the ASCII text of this book from its Web
+  site at <http://gnosis.cx/TPiP/>, along with a semiformal
+  documentation of the conventions used.  Readers might also be
+  interested in a format called "reStructuredText," which is
+  similar in spirit, but both somewhat "heavier" and more
+  formally specified. reStructuredText has a semiofficial
+  status in the Python community since it is now included in the
+  [DocUtils] package; for information see:
+
+    <http://docutils.sourceforge.net/rst.html>.
+
+  In this appendix, I include the full source code for an
+  application that can convert the original text of this book
+  into an HTML document.  I believe that this application is a
+  good demonstration of the design and structure of a realistic
+  text processing tool.  In general structure, 'book2html.py'
+  uses a line-oriented state machine to categorize lines into
+  appropriate document elements.  Under this approach, the
+  "meaning" of a particular line is, in part, determined by the
+  context of the lines that came immediately before it.  After
+  making decisions on how to categorize each line with a
+  combination of a state machine and a collection of regular
+  expression patterns, the blocks of document elements are
+  processed into HTML output.  In principle, it would not be
+  difficult to substitute a different output format; the steps
+  involved are modular.
+
+  The Web site for this book has a collection of utilities similar
+  to the one presented. Over time, I have adapted the skeleton to
+  deal with variations in input and output formats, but there is
+  overlap between all of them. Using this utility is simply a
+  matter of typing something like:
+
+      #*------------- Use of book2html.py ---------------------#
+      % book2html.py "Text Processing in Python" < TPiP.txt > TPiP.html
+
+  The title is optional, and you may pipe STDIN and STDOUT as
+  usual.  Since the target is HTML, I decided it would be nice to
+  colorize source code samples.  That capability is in a support
+  module:
+
+      #----------------------- colorize.py --------------------#
+      #!/usr/bin/python
+      import keyword, token, tokenize, sys
+      from cStringIO import StringIO
+
+      PLAIN = '%s'
+      BOLD  = '<b>%s</b>'
+      CBOLD = '<font color="%s"><b>%s</b></font>'
+      _KEYWORD = token.NT_OFFSET+1
+      _TEXT    = token.NT_OFFSET+2
+      COLORS   = { token.NUMBER:     'black',
+                   token.OP:         'darkblue',
+                   token.STRING:     'green',
+                   tokenize.COMMENT: 'darkred',
+                   token.NAME:       None,
+                   token.ERRORTOKEN: 'red',
+                   _KEYWORD:         'blue',
+                   _TEXT:            'black'  }
+
+      class ParsePython:
+          "Colorize python source"
+          def __init__(self, raw):
+              self.inp  = StringIO(raw.expandtabs(4).strip())
+          def toHTML(self):
+              "Parse and send the colored source"
+              raw = self.inp.getvalue()
+              self.out = StringIO()
+              self.lines = [0,0]      # store line offsets in self.lines
+              self.lines += [i+1 for i in range(len(raw)) if raw[i]=='\n']
+              self.lines += [len(raw)]
+              self.pos = 0
+              try:
+                  tokenize.tokenize(self.inp.readline, self)
+                  return self.out.getvalue()
+              except tokenize.TokenError, ex:
+                  msg,ln = ex[0],ex[1][0]
+                  sys.stderr.write("ERROR: %s %s\n" %
+                                   (msg, raw[self.lines[ln]:]))
+                  return raw
+          def __call__(self,toktype,toktext,(srow,scol),(erow,ecol),line):
+              "Token handler"
+              # calculate new positions
+              oldpos = self.pos
+              newpos = self.lines[srow] + scol
+              self.pos = newpos + len(toktext)
+              if toktype in [token.NEWLINE, tokenize.NL]:  # handle newlns
+                  self.out.write('\n')
+                  return
+              if newpos > oldpos:     # send the orig whitspce, if needed
+                  self.out.write(self.inp.getvalue()[oldpos:newpos])
+              if toktype in [token.INDENT, token.DEDENT]:
+                  self.pos = newpos   # skip indenting tokens
+                  return
+              if token.LPAR <= toktype and toktype <= token.OP:
+                  toktype = token.OP  # map token type to a color group
+              elif toktype == token.NAME and keyword.iskeyword(toktext):
+                  toktype = _KEYWORD
+              color = COLORS.get(toktype, COLORS[_TEXT])
+              if toktext:             # send text
+                  txt = Detag(toktext)
+                  if color is None:    txt = PLAIN % txt
+                  elif color=='black': txt = BOLD % txt
+                  else:                txt = CBOLD % (color,txt)
+                  self.out.write(txt)
+
+      Detag = lambda s: \
+          s.replace('&','&amp;').replace('<','&lt;').replace('>','&gt;')
+
+      if __name__=='__main__':
+          parsed = ParsePython(sys.stdin.read())
+          print '<pre>'
+          print parsed.toHTML()
+          print '</pre>'
+
+  The module [colorize] contains its own self-test code and is
+  perfectly usable as a utility on its own. The main module
+  consists of:
+
+      #--------------------- book2html.py ---------------------#
+      #!/usr/bin/python
+      """Convert ASCII book source files for HTML presentation"
+
+      Usage: python book2html.py [title] < source.txt > target.html
+      """
+      __author__=["David Mertz (mertz@gnosis.cx)",]
+      __version__="November 2002"
+
+      from __future__ import generators
+      import sys, re, string, time
+      from colorize import ParsePython
+      from cgi import escape
+
+      #-- Define some HTML boilerplate
+      html_open =\
+      """<!DOCTYPE HTML PUBLIC "-//IETF//DTD HTML//EN">
+      <html>
+      <head>
+      <title>%s</title>
+      <style>
+        .code-sample {background-color:#EEEEEE; text-align:left;
+                      width:90%%; margin-left:auto; margin-right:auto;}
+        .module      {color : darkblue}
+        .libfunc     {color : darkgreen}
+      </style>
+      </head>
+      <body>
+      """
+      html_title = "Automatically Generated HTML"
+      html_close = "</body></html>"
+      code_block = \
+      """<table class="code-sample"><tr><td><h4>%s</h4></td></tr>
+      <tr><td><pre>%s</pre></td></tr>
+      </table>"""
+      #-- End of boilerplate
+
+      #-- State constants
+      for s in ("BLANK CHAPTER SECTION SUBSECT SUBSUB MODLINE "
+                "MODNAME PYSHELL CODESAMP NUMLIST BODY QUOTE "
+                "SUBBODY TERM DEF RULE VERTSPC").split():
+          exec "%s = '%s'" % (s,s)
+      markup = {CHAPTER:'h1', SECTION:'h2', SUBSECT:'h3', SUBSUB:'h4',
+                BODY:'p', QUOTE:'blockquote', NUMLIST:'blockquote',
+                DEF:'blockquote'}
+      divs = {RULE:'hr', VERTSPC:'br'}
+
+      class Regexen:
+          def __init__(self):
+              # blank line is empty, spaces/dashes only, or proc instruct
+              self.blank    = re.compile("^[ -]*$|^  THIS IS [A-Z]+$")
+              self.chapter  = re.compile("^(CHAPTER|APPENDIX|FRONTMATTER)")
+              self.section  = re.compile("^SECTION")
+              self.subsect  = re.compile("^  (TOPIC|PROBLEM|EXERCISE)")
+              self.subsub   = re.compile("^  [A-Z 0-9-]+:$") # chk befr body
+              self.modline  = re.compile("^  =+$")
+              self.pyshell  = re.compile("^ +>>>")
+              self.codesamp = re.compile("^ +#[*]?[-=]+ .+ [-=]+#")
+              self.numlist  = re.compile("^  \d+[.] ")       # chk befr body
+              self.body     = re.compile("^  \S")            # 2 spc indent
+              self.quote    = re.compile("^     ?\S")        # 4-5 spc indnt
+              self.subbody  = re.compile("^      +")         # 6+ spc indent
+              self.rule     = re.compile("^  (-\*-|!!!)$")
+              self.vertspc  = re.compile("^  \+\+\+$")
+
+      def Make_Blocks(fpin=sys.stdin, r=Regexen()):
+          #-- Initialize the globals
+          global state, blocks, laststate
+          state, laststate = BLANK, BLANK
+          blocks = [[BLANK]]
+          #-- Break the file into relevant chunks
+          for line in fpin.xreadlines():
+              line = line.rstrip()            # Normalize line endings
+              #-- for "one-line states" just act (no accumulation)
+              if r.blank.match(line):
+                  if inState(PYSHELL):        newState(laststate)
+                  else:                       blocks[-1].append("")
+              elif r.rule.match(line):        newState(RULE)
+              elif r.vertspc.match(line):     newState(VERTSPC)
+              elif r.chapter.match(line):     newState(CHAPTER)
+              elif r.section.match(line):     newState(SECTION)
+              elif r.subsect.match(line):     newState(SUBSECT)
+              elif r.subsub.match(line):      newState(SUBSUB)
+              elif r.modline.match(line):     newState(MODLINE)
+              elif r.numlist.match(line):     newState(NUMLIST)
+              elif r.pyshell.match(line):
+                  if not inState(PYSHELL):    newState(PYSHELL)
+              elif r.codesamp.match(line):    newState(CODESAMP)
+              #-- now the multi-line states that are self-defining
+              elif r.body.match(line):
+                  if not inState(BODY):       newState(BODY)
+              elif r.quote.match(line):
+                  if inState(MODLINE):        newState(MODNAME)
+                  elif r.blank.match(line):   newState(BLANK)
+                  elif not inState(QUOTE):    newState(QUOTE)
+              #-- now the "multi-line states" which eat further lines
+              elif inState(MODLINE, PYSHELL, CODESAMP, NUMLIST, DEF):
+                  "stay in this state until we get a blank line"
+                  "...or other one-line prior type, but shouldn't happen"
+              elif r.subbody.match(line):
+                  "Sub-body is tricky: it might belong with several states:"
+                  "PYSHELL, CODESAMP, NUMLIST, or as a def after BODY"
+                  if inState(BODY):           newState(DEF)
+                  elif inState(BLANK):
+                      if laststate==DEF:      pass
+                  elif inState(DEF, CODESAMP, PYSHELL, NUMLIST, MODNAME):
+                      pass
+              else:
+                  raise ValueError, \
+                        "unexpected input block state: %s\n%s" %(state,line)
+              if inState(MODLINE, RULE, VERTSPC): pass
+              elif r.blank.match(line): pass
+              else: blocks[-1].append(line)
+          return LookBack(blocks)
+
+      def LookBack(blocks):
+          types = [f[0] for f in blocks]
+          for i in range(len(types)-1):
+              this, next = types[i:i+2]
+              if (this,next)==(BODY,DEF):
+                  blocks[i][0] = TERM
+          return blocks
+
+      def newState(name):
+          global state, laststate, blocks
+          if name not in (BLANK, MODLINE):
+              blocks.append([name])
+          laststate = state
+          state = name
+
+      def inState(*names):
+          return state in names
+
+      def Process_Blocks(blocks, fpout=sys.stdout, title=html_title):
+          fpout.write(html_open % title)
+          for block in blocks:        # Massage each block as needed
+              typ, lines = block[0], block[1:]
+              tag = markup.get(typ, None)
+              div = divs.get(typ, None)
+              if tag is not None:
+                  map(fpout.write, wrap_html(lines, tag))
+              elif div is not None:
+                  fpout.write('<%s />\n' % div)
+              elif typ in (PYSHELL, CODESAMP):
+                  fpout.write(fixcode('\n'.join(lines),style=typ))
+              elif typ in (MODNAME,):
+                  mod = '<hr/><h3 class="module">%s</h3>'%'\n'.join(lines)
+                  fpout.write(mod)
+              elif typ in (TERM,):
+                  terms = '<br />\n'.join(lines)
+                  fpout.write('<h4 class="libfunc">%s</h4>\n' % terms)
+              else:
+                  sys.stderr.write(typ+'\n')
+          fpout.write(html_close)
+
+      #-- Functions for start of block-type state
+      def wrap_html(lines, tag):
+          txt = '\n'.join(lines)
+          for para in txt.split('\n\n'):
+              if para: yield '<%s>%s</%s>\n' %\
+                              (tag,URLify(Typography(escape(para))),tag)
+
+      def fixcode(block, style=CODESAMP):
+          block = LeftMargin(block)           # Move to left
+          # Pull out title if available
+          title = 'Code Sample'
+          if style==CODESAMP:
+              re_title = re.compile('^#\*?\-+ (.+) \-+#$', re.M)
+              if_title = re_title.match(block)
+              if if_title:
+                  title = if_title.group(1)
+                  block = re_title.sub('', block)  # take title out of code
+          # Decide if it is Python code
+          firstline = block[:block.find('\n')]
+          if re.search(r'\.py_?|[Pp]ython|>>>', title+firstline):
+              # Has .py, py_, Python/python, or >>> on first line/title
+              block = ParsePython(block.rstrip()).toHTML()
+              return code_block % (Typography(title), block)
+          # elif the-will-and-the-way-is-there-to-format-language-X: ...
+          else:
+              return code_block % (Typography(title), escape(block).strip())
+
+      def LeftMargin(txt):
+          "Remove as many leading spaces as possible from whole block"
+          for l in range(12,-1,-1):
+              re_lead = '(?sm)'+' '*l+'\S'
+              if re.match(re_lead, txt): break
+          txt = re.sub('(?sm)^'+' '*l, '', txt)
+          return txt
+
+      def URLify(txt):
+          # Conv special IMG URL's: Alt Text: http://site.org/img.png}
+          # (don't actually try quite as hard to validate URL though)
+          txt = re.sub('(?sm){(.*?):\s*(http://.*)}',
+                       '<img src="\\2" alt="\\1">', txt)
+          # Convert regular URL's
+          txt = re.sub('(?:[^="])((?:http|ftp|file)://(?:[^ \n\r<\)]+))(\s)',
+                       '<a href="\\1">\\1</a>\\2', txt)
+          return txt
+
+      def Typography(txt):
+          rc = re.compile     # cut down line length
+          MS = re.M | re.S
+          # [module] names
+          r = rc(r"""([\(\s'/">]|^)\[(.*?)\]([<\s\.\),:;'"?!/-])""", MS)
+          txt = r.sub('\\1<i class="module">\\2</i>\\3',txt)
+          # *strongly emphasize* words
+          r = rc(r"""([\(\s'/"]|^)\*(.*?)\*([\s\.\),:;'"?!/-])""", MS)
+          txt = r.sub('\\1<strong>\\2</strong>\\3', txt)
+          # -emphasize- words
+          r = rc(r"""([\(\s'/"]|^)-(.+?)-([\s\.\),:;'"?!/])""", MS)
+          txt = r.sub('\\1<em>\\2</em>\\3', txt)
+          # _Book Title_ citations
+          r = rc(r"""([\(\s'/"]|^)_(.*?)_([\s\.\),:;'"?!/-])""", MS)
+          txt = r.sub('\\1<cite>\\2</cite>\\3', txt)
+          # 'Function()' names
+          r = rc(r"""([\(\s/"]|^)'(.*?)'([\s\.\),:;"?!/-])""", MS)
+          txt = r.sub("\\1<code>\\2</code>\\3", txt)
+          # `library.func()` names
+          r = rc(r"""([\(\s/"]|^)`(.*?)`([\s\.\),:;"?!/-])""", MS)
+          txt = r.sub('\\1<i class="libfunc">\\2</i>\\3', txt)
+          return txt
+
+      if __name__ == '__main__':
+          blocks = Make_Blocks()
+          if len(sys.argv) > 1:
+              Process_Blocks(blocks, title=sys.argv[1])
+          else:
+              Process_Blocks(blocks)
+

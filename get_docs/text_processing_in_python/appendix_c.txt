@@ -1,0 +1,327 @@
+APPENDIX -- UNDERSTANDING UNICODE
+------------------------------------------------------------------------
+
+SECTION -- Some Background on Characters
+-------------------------------------------------------------------
+
+  Before we see what Unicode is, it makes sense to step back
+  slightly to think about just what it means to store "characters"
+  in digital files. Anyone who uses a tool like a text editor
+  usually just thinks of what they are doing as entering some
+  characters--numbers, letters, punctuation, and so on. But behind
+  the scene a little bit more is going on. "Characters" that are
+  stored on digital media must be stored as sequences of ones and
+  zeros, and some encoding and decoding must happen to make these
+  ones and zeros into characters we see on a screen or type in with
+  a keyboard.
+
+  Sometime around the 1960s, a few decisions were made about just
+  what ones and zeros (bits) would represent characters. One
+  important choice that most modern computer users give no thought
+  to was the decision to use 8-bit bytes on nearly all computer
+  platforms. In other words, bytes have 256 possible values. Within
+  these 8-bit bytes, a consensus was reached to represent one
+  character in each byte. So at that point, computers needed a
+  particular -encoding- of characters into byte values; there were
+  256 "slots" available, but just which character would go in each
+  slot? The most popular encoding developed was Bob Bemers'
+  American Standard Code for Information Interchange (ASCII), which
+  is now specified in exciting standards like ISO-14962-1997 and
+  ANSI-X3.4-1986(R1997). But other options, like IBM's mainframe
+  EBCDIC, linger on, even now.
+
+  ASCII itself is of somewhat limited extent.  Only the values of
+  the lower-order 7-bits of each byte might contain ASCII-encoded
+  characters.  The top 7-bits worth of positions (128 of them)
+  are "reserved" for other uses (back to this).  So, for example,
+  a byte that contains "01000001" -might- be an ASCII encoding of
+  the letter "A", but a byte containing "11000001" cannot be an
+  ASCII encoding of anything.  Of course, a given byte may or may
+  not -actually- represent a character; if it is part of a text
+  file, it probably does, but if it is part of object code, a
+  compressed archive, or other binary data, ASCII decoding is
+  misleading.  It depends on context.
+
+  The reserved top 7-bits in common 8-bit bytes have been used for
+  a number of things in a character-encoding context. On
+  traditional textual terminals (and printers, etc.) it has been
+  common to allow switching between -codepages- on terminals to
+  allow display of a variety of national-language characters (and
+  special characters like box-drawing borders), depending on the
+  needs of a user. In the world of Internet communications,
+  something very similar to the codepage system exists with the
+  various ISO-8859-* encodings. What all these systems do is assign
+  a set of characters to the 128 slots that ASCII reserves for
+  other uses. These might be accented Roman characters (used in
+  many Western European languages) or they might be non-Roman
+  character sets like Greek, Cyrillic, Hebrew, or Arabic (or in the
+  future, Thai and Hindi). By using the right codepage, 8-bit bytes
+  can be made quite suitable for encoding reasonable sized
+  (phonetic) alphabets.
+
+  Codepages and ISO-8859-* encodings, however, have some definite
+  limitations.  For one thing, a terminal can only display one
+  codepage at a given time, and a document with an ISO-8859-*
+  encoding can only contain one character set.  Documents that
+  need to contain text in multiple languages are not possible to
+  represent by these encodings.  A second issue is equally
+  important:  Many ideographic and pictographic character sets
+  have far more than 128 or 256 characters in them (the former is
+  all we would have in the codepage system, the latter if we used
+  the whole byte and discarded the ASCII part).  It is simply not
+  possible to encode languages like Chinese, Japanese, and
+  Korean in 8-bit bytes.  Systems like ISO-2022-JP-1 and codepage
+  943 allow larger character sets to be represented using two or
+  more bytes for each character.  But even when using these
+  language-specific multibyte encodings, the problem of mixing
+  languages is still present.
+
+SECTION -- What is Unicode?
+-------------------------------------------------------------------
+
+  Unicode solves the problems of previous character-encoding
+  schemes by providing a unique code number for -every- character
+  needed, worldwide and across languages. Over time, more
+  characters are being added, but the allocation of available
+  ranges for future uses has already been planned out, so room
+  exists for new characters. In Unicode-encoded documents, no
+  ambiguity exists about how a given character should display (for
+  example, should byte value '0x89' appear as e-umlaut, as in
+  codepage 850, or as the per-mil mark, as in codepage 1004?).
+  Furthermore, by giving each character its own code, there is no
+  problem or ambiguity in creating multilingual documents that
+  utilize multiple character sets at the same time. Or rather,
+  these documents actually utilize the single (very large)
+  character set of Unicode itself.
+
+  Unicode is managed by the Unicode Consortium (see Resources), a
+  nonprofit group with corporate, institutional, and individual
+  members. Originally, Unicode was planned as a 16-bit
+  specification. However, this original plan failed to leave enough
+  room for national variations on related (but distinct) ideographs
+  across East Asian languages (Chinese, Japanese, and Korean), nor
+  for specialized alphabets used in mathematics and the scholarship
+  of historical languages. As a result, the code space of Unicode
+  is currently 32-bits (and anticipated to remain fairly sparsely
+  populated, given the 4 billion allowed characters).
+
+SECTION -- Encodings
+-------------------------------------------------------------------
+
+  A full 32-bits of encoding space leaves plenty of room for
+  every character we might want to represent, but it has its own
+  problems.  If we need to use 4 bytes for every character we
+  want to encode, that makes for rather verbose files (or
+  strings, or streams).  Furthermore, these verbose files are
+  likely to cause a variety of problems for legacy tools.  As a
+  solution to this, Unicode is itself often encoded using
+  "Unicode Transformation Formats" (abbreviated as 'UTF-*').  The
+  encodings 'UTF-8' and 'UTF-16' use rather clever techniques to
+  encode characters in a variable number of bytes, but with the
+  most common situation being the use of just the number of bits
+  indicated in the encoding name.  In addition, the use of
+  specific byte value ranges in multibyte characters is designed
+  in such a way as to be friendly to existing tools.  'UTF-32' is
+  also an available encoding, one that simply uses all four bytes
+  in a fixed-width encoding.
+
+  The design of 'UTF-8' is such that 'US-ASCII' characters are
+  simply encoded as themselves.  For example, the English letter
+  "e" is encoded as the single byte '0x65' in both ASCII and in
+  'UTF-8'.  However, the non-English "e-umlaut" diacritic, which
+  is Unicode character '0x00EB', is encoded with the two bytes
+  '0xC3 0xAB'.  In contrast, the 'UTF-16' representation of
+  every character is always at least 2 bytes (and sometimes 4
+  bytes).  'UTF-16' has the rather straightforward
+  representations of the letters "e" and "e-umlaut" as '0x65
+  0x00' and '0xEB 0x00', respectively.  So where does the odd
+  value for the e-umlaut in 'UTF-8' come from? Here is the
+  trick:  No multibyte encoded 'UTF-8' character is allowed to
+  be in the 7-bit range used by ASCII, to avoid confusion.  So
+  the 'UTF-8' scheme uses some bit shifting and encodes every
+  Unicode character using up to 6 bytes.  But the byte values
+  allowed in each position are arranged in such a manner as not
+  to allow confusion of byte positions (for example, if you read
+  a file nonsequentially).
+
+  Let's look at another example, just to see it laid out. Here is a
+  simple text string encoded in several ways. The view presented is
+  similar to what you would see in a hex-mode file viewer. This
+  way, it is easy to see both a likely on-screen character
+  representation (on a legacy, non-Unicode terminal) and a
+  representation of the underlying hexadecimal values each byte
+  contains:
+
+      #---- Hex view of several character string encodings ----#
+      ------------------- Encoding = us-ascii ---------------------------
+      55 6E 69 63 6F 64 65 20 20 20 20 20 20 20 20 20  | Unicode
+      ------------------- Encoding = utf-8 ------------------------------
+      55 6E 69 63 6F 64 65 20 20 20 20 20 20 20 20 20  | Unicode
+      ------------------- Encoding = utf-16 -----------------------------
+      FF FE 55 00 6E 00 69 00 63 00 6F 00 64 00 65 00  |   U n i c o d e
+
+  !!!
+
+SECTION --  Declarations
+-------------------------------------------------------------------
+
+  We have seen how Unicode characters are actually encoded, at
+  least briefly, but how do applications know to use a particular
+  decoding procedure when Unicode is encountered? How applications
+  are alerted to a Unicode encoding depends upon the type of data
+  stream in question.
+
+  Normal text files do not have any special header information
+  attached to them to explicitly specify type. However, some
+  operating systems (like MacOS, OS/2, and BeOS--Windows and Linux
+  only in a more limited sense) have mechanisms to attach extended
+  attributes to files; increasingly, MIME header information is
+  stored in such extended attributes. If this happens to be the
+  case, it is possible to store MIME header information such as:
+
+      #*------------- MIME Header -----------------------------#
+      Content-Type: text/plain; charset=UTF-8
+
+  Nonetheless, having MIME headers attached to files is not a safe,
+  generic assumption. Fortunately, the actual byte sequences in
+  Unicode files provides a tip to applications. A Unicode-aware
+  application, absent contrary indication, is supposed to assume
+  that a given file is encoded with 'UTF-8'. A non-Unicode-aware
+  application reading the same file will find a file that contains
+  a mixture of ASCII characters and high-bit characters (for
+  multibyte 'UTF-8' encodings). All the ASCII-range bytes will have
+  the same values as if they were ASCII encoded. If any multibyte
+  'UTF-8' sequences were used, those will appear as non-ASCII
+  bytes and should be treated as noncharacter data by the legacy
+  application. This may result in nonprocessing of those extended
+  characters, but that is pretty much the best we could expect from
+  a legacy application (that, by definition, does not know how to
+  deal with the extended characters).
+
+  For 'UTF-16' encoded files, a special convention is followed for
+  the first two bytes of the file. One of the sequences '0xFF 0xFE'
+  or '0xFE 0xFF' acts as small headers to the file. The choice of
+  which header specifies the endianness of a platform's bytes (most
+  common platforms are little-endian and will use '0xFF 0xFE'). It
+  was decided that the collision risk of a legacy file beginning
+  with these bytes was small and therefore these could be used as a
+  reliable indicator for 'UTF-16' encoding. Within a 'UTF-16'
+  encoded text file, plain ASCII characters will appear every other
+  byte, interspersed with '0x00' (null) bytes. Of course, extended
+  characters will produce non-null bytes and in some cases
+  double-word (4 byte) representations. But a legacy tool that
+  ignores embedded nulls will wind up doing the right thing with
+  'UTF-16' encoded files, even without knowing about Unicode.
+
+  Many communications protocols--and more recent document
+  specifications--allow for explicit encoding specification. For
+  example, an HTTP daemon application (a Web server) can return a
+  header such as the following to provide explicit instructions to
+  a client:
+
+      #*------------- HTTP Header -----------------------------#
+      HTTP/1.1 200 OK
+      Content-Type: text/html; charset:UTF-8;
+
+  Similarly, an NNTP, SMTP/POP3 message can carry a similar
+  'Content-Type:' header field that makes explicit the encoding to
+  follow (most likely as 'text/plain' rather than 'text/html',
+  however; or at least we can hope).
+
+  HTML and XML documents can contain tags and declarations to
+  make Unicode encoding explicit.  An HTML document can provide a
+  hint in a 'META' tag, like:
+
+      #*------------- Content-Type META tag -------------------#
+      <META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">
+
+  However, a 'META' tag should properly take lower precedence than
+  an HTTP header, in a situation where both are part of the
+  communication (but for a local HTML file, such an HTTP header
+  does not exist).
+
+  In XML, the actual document declaration should indicate the
+  Unicode encoding, as in:
+
+      #*------------- XML Encoding Declaration ----------------#
+      <?xml version="1.0" encoding="UTF-8"?>
+
+  Other formats and protocols may provide explicit encoding
+  specification by similar means.
+
+SECTION -- Finding Codepoints
+-------------------------------------------------------------------
+
+  Each Unicode character is identified by a unique codepoint.
+  You can find information on character codepoints on official
+  Unicode Web sites, but a quick way to look at visual forms of
+  characters is by generating an HTML page with charts of Unicode
+  characters.  The script below does this:
+
+      #---------- mk_unicode_chart.py ----------#
+      # Create an HTML chart of Unicode characters by codepoint
+      import sys
+      head = '<html><head><title>Unicode Code Points</title>\n' +\
+             '<META HTTP-EQUIV="Content-Type" ' +\
+                   'CONTENT="text/html; charset=UTF-8">\n' +\
+             '</head><body>\n<h1>Unicode Code Points</h1>'
+      foot = '</body></html>'
+      fp = sys.stdout
+      fp.write(head)
+      num_blocks = 32  # Up to 256 in theory, but IE5.5 is flaky
+      for block in range(0,256*num_blocks,256):
+          fp.write('\n\n<h2>Range %5d-%5d</h2>' % (block,block+256))
+          start = unichr(block).encode('utf-16')
+          fp.write('\n<pre>     ')
+          for col in range(16): fp.write(str(col).ljust(3))
+          fp.write('</pre>')
+          for offset in range(0,256,16):
+              fp.write('\n<pre>')
+              fp.write('+'+str(offset).rjust(3)+' ')
+              line = '  '.join([unichr(n+block+offset) for n in range(16)])
+              fp.write(line.encode('UTF-8'))
+              fp.write('</pre>')
+      fp.write(foot)
+      fp.close()
+
+  Exactly what you see when looking at the generated HTML page
+  depends on just what Web browser and OS platform the page is
+  viewed on--as well as on installed fonts and other factors.
+  Generally, any character that cannot be rendered on the current
+  browser will appear as some sort of square, dot, or question
+  mark. Anything that -is- rendered is generally accurate. Once a
+  character is visually identified, further information can be
+  generated with the [unicodedata] module:
+
+      >>> import unicodedata
+      >>> unicodedata.name(unichr(1488))
+      'HEBREW LETTER ALEF'
+      >>> unicodedata.category(unichr(1488))
+      'Lo'
+      >>> unicodedata.bidirectional(unichr(1488))
+      'R'
+
+  A variant here would be to include the information provided by
+  [unicodedata] within a generated HTML chart, although such a
+  listing would be far more verbose than the example above.
+
+SECTION -- Resources
+-------------------------------------------------------------------
+
+  More-or-less definitive information on all matters Unicode can
+  be found at:
+
+    <http://www.unicode.org/>.
+
+  The Unicode Consortium:
+
+    <http://www.unicode.org/unicode/consortium/consort.html>.
+
+  Unicode Technical Report #17--Character Encoding Model:
+
+    <http://www.unicode.org/unicode/reports/tr17/>.
+
+  A brief history of ASCII:
+
+    <http://www.bobbemer.com/ASCII.HTM>.
+

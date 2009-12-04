@@ -1,0 +1,485 @@
+FRONTMATTER -- PREFACE
+-------------------------------------------------------------------
+
+    Beautiful is better than ugly.
+    Explicit is better than implicit.
+    Simple is better than complex.
+    Complex is better than complicated.
+    Flat is better than nested.
+    Sparse is better than dense.
+    Readability counts.
+    Special cases aren't special enough to break the rules.
+    Although practicality beats purity.
+    Errors should never pass silently.
+    Unless explicitly silenced.
+    In the face of ambiguity, refuse the temptation to guess.
+    There should be one--and preferably only one--obvious way to do it.
+    Although that way may not be obvious at first unless you're Dutch.
+    Now is better than never.
+    Although never is often better than *right* now.
+    If the implementation is hard to explain, it's a bad idea.
+    If the implementation is easy to explain, it may be a good idea.
+    Namespaces are one honking great idea--let's do more of those!
+      --Tim Peters, "The Zen of Python"
+
+
+SECTION 1 -- What is Text Processing?
+-------------------------------------------------------------------
+
+  At the broadest level text processing is simply taking textual
+  information and -doing something- with it.  This doing might be
+  restructuring or reformatting it, extracting smaller bits of
+  information from it, algorithmically modifying the content of
+  the information, or performing calculations that depend on the
+  textual information.  The lines between "text" and the even
+  more general term "data" are extremely fuzzy; at an
+  approximation, "text" is just data that lives in forms that
+  people can themselves read--at least in principle, and maybe
+  with a bit of effort.  Most typically computer "text" is
+  composed of sequences of bits that have a "natural"
+  representation as letters, , and symbols; most often
+  such text is delimited (if delimited at all) by symbols and
+  formatting that can be easily pronounced as "next datum."
+
+  The lines are fuzzy, but the data that seems least like
+  text--and that, therefore, this particular book is least
+  concerned with--is the data that makes up "multimedia"
+  (pictures, sounds, video, animation, etc.) and data that makes
+  up UI "events" (draw a window, move the mouse, open an
+  application, etc.).  Like I said, the lines are fuzzy, and some
+  representations of the most nontextual data are themselves
+  pretty textual.  But in general, the subject of this book is
+  all the stuff on the near side of that fuzzy line.
+
+  Text processing is arguably what most programmers spend most of
+  their time doing.  The information that lives in business
+  software systems mostly comes down to collections of words
+  about the application domain--maybe with a few special symbols
+  mixed in.  Internet communications protocols consist mostly of
+  a few special words used as headers, a little bit of
+  constrained formatting, and message bodies consisting of
+  additional wordish texts.  Configuration files, log files, CSV
+  and fixed-length data files, error files, documentation, and
+  source code itself are all just sequences of words with bits
+  of constraint and formatting applied.
+
+  Programmers and developers spend so much time with text
+  processing that it is easy to forget that that is what we are
+  doing.  The most common text processing application is probably
+  your favorite text editor.  Beyond simple entry of new
+  characters, text editors perform such text processing tasks as
+  search/replace and copy/paste, which--given guided interaction
+  with the user--accomplish sophisticated manipulation of
+  textual sources.  Many text editors go farther than these
+  simple capabilities and include their own complete programming
+  systems (usually called "macro processing"); in those cases
+  where editors include "Turing-complete" macro languages, text
+  editors suffice, in principle, to accomplish anything that the
+  examples in this book can.
+
+  After text editors, a variety of text processing tools are
+  widely used by developers.  Tools like "File Find" under
+  Windows, or "grep" on Unix (and other platforms), perform the
+  basic chore of -locating- text patterns.  "Little languages"
+  like sed and awk perform basic text manipulation (or even
+  nonbasic).  A large number of utilities--especially in
+  Unix-like environments--perform small custom text processing
+  tasks:  'wc', 'sort', 'tr', 'md5sum', 'uniq', 'split',
+  'strings', and many others.
+
+  At the top of the text processing food chain are general-purpose
+  programming languages, such as Python. I wrote this book on
+  Python in large part because Python is such a clear, expressive,
+  and general-purpose language. But for all Python's virtues, text
+  editors and "little" utilities will always have an important
+  place for developers "getting the job done." As simple as Python
+  is, it is still more complicated than you need to achieve many
+  basic tasks. But once you get past the very simple, Python is a
+  perfect language for making the difficult things possible (and it
+  is also good at making the easy things simple).
+
+
+SECTION 2 -- The Philosophy of Text Processing
+-------------------------------------------------------------------
+
+  Hang around any Python discussion groups for a little while,
+  and you will certainly be dazzled by the contributions of the
+  Python developer, Tim Peters (and by a number of other
+  Pythonistas).  His "Zen of Python" captures much of the reason
+  that I choose Python as the language in which to solve most
+  programming tasks that are presented to me.  But to understand
+  what is most special about -text processing- as a programming
+  task, it is worth turning to Perl creator Larry Wall's cardinal
+  virtues of programming:  laziness, impatience, hubris.
+
+  What sets text processing most clearly apart from other tasks
+  computer programmers accomplish is the frequency with which we
+  perform text processing on an ad hoc or "one-shot" basis.  One
+  rarely bothers to create a one-shot GUI interface for a
+  program.  You even less frequently perform a one-shot
+  normalization of a relational database.  But every programmer
+  with a little experience has had numerous occasions where she
+  has received a trickle of textual information (or maybe a
+  deluge of it) from another department, from a client, from a
+  developer working on a different project, or from data dumped
+  out of a DBMS; the problem in such cases is always to "process"
+  the text so that it is usable for your own project, program,
+  database, or work unit.  Text processing to the rescue.  This
+  is where the virtue of impatience first appears--we just want
+  the stuff processed, right now!
+
+  But text processing tasks that were obviously one-shot tasks
+  that we knew we would never need again have a habit of coming
+  back like restless ghosts.  It turns out that that client needs
+  to update the one-time data they sent last month.  Or the boss
+  decides that she would really like a feature of that text
+  summarized in a slightly different way.  The virtue of laziness
+  is our friend here--with our foresight not to actually delete
+  those one-shot scripts, we have them available for easy reuse
+  and/or modification when the need arises.
+
+  Enough is not enough, however.  That script you reluctantly
+  used a second time turns out to be quite similar to a more
+  general task you will need to perform frequently, perhaps even
+  automatically.  You imagine that with only a slight amount of
+  extra work you can generalize and expand the script, maybe add
+  a little error checking and some runtime options while you are
+  at it; and do it all in time and under budget (or even as a
+  side project, off the budget).  Obviously, this is the voice of
+  that greatest of programmers' virtues: hubris.
+
+  The goal of this book is to make its readers a little lazier, a
+  smidgeon more impatient, and a whole bunch more hubristic.
+  Python just happens to be the language best suited to the study
+  of virtue.
+
+
+SECTION 3 -- What You'll Need to Use This Book
+-------------------------------------------------------------------
+
+  This book is ideally suited for programmers who are a little
+  bit familiar with Python, and whose daily tasks involve a fair
+  amount of text processing chores.  Programmers who have some
+  background in other programming languages--especially with
+  other "scripting" languages--should be able to pick up enough
+  Python to get going by reading Appendix A.
+
+  While Python is a rather simple language at heart, this book is
+  not intended as a tutorial on Python for nonprogrammers. Instead,
+  this book is about two other things: getting the job done,
+  pragmatically and efficiently; and understanding why what works
+  works and what doesn't work doesn't work, theoretically and
+  conceptually. As such, we hope this book can be useful both to
+  working programmers and to students of programming at a level
+  just past the introductory.
+
+  Many sections of this book are accompanied by problems and
+  exercises, and these in turn often pose questions for users.
+  In most cases, the answers to the listed questions are somewhat
+  open-ended--there are no simple right answers.  I believe that
+  working through the provided questions will help both
+  self-directed and instructor-guided learners; the questions can
+  typically be answered at several levels and often have an
+  underlying subtlety.  Instructors who wish to use this text are
+  encouraged to contact the author for assistance in structuring
+  a curriculum involving it.  All readers are encouraged to
+  consult the book's Web site to see possible answers provided by
+  both the author and other readers; additional related questions
+  will be added to the Web site over time, along with other
+  resources.
+
+  The Python language itself is conservative.  Almost every
+  Python script written ten years ago for Python 1.0 will run
+  fine in Python 2.3+.  However, as versions improve, a certain
+  number of new features have been added.  The most significant
+  changes have matched the version number changes--Python 2.0
+  introduced list comprehensions, augmented assignments, Unicode
+  support, and a standard XML package.  Many scripts written in
+  the most natural and efficient manner using Python 2.0+ will
+  not run without changes in earlier versions of Python.
+
+  The general target of this book will be users of Python 2.1+,
+  but some 2.2+ specific features will be utilized in examples.
+  Maybe half the examples in this book will run fine on Python
+  1.5.1+ (and slightly fewer on older versions), but examples
+  will not necessarily indicate their requirement for Python 2.0+
+  (where it exists).  On the other hand, new features introduced
+  with Python 2.1 and above will only be utilized where they make
+  a task significantly easier, or where the feature itself is
+  being illustrated.  In any case, examples requiring versions
+  past Python 2.0 will usually indicate this explicitly.
+
+  In the case of modules and packages--whether in the standard
+  library or third-party--we will explicitly indicate what Python
+  version is required and, where relevant, which version added
+  the module or package to the standard library.  In some cases,
+  it will be possible to use later standard library modules with
+  earlier Python versions.  In important cases, this possibility
+  will be noted.
+
+
+SECTION 4 -- Conventions Used in This Book
+-------------------------------------------------------------------
+
+  Several typographic conventions are used in main text to guide
+  the readers eye. Both block and inline literals are presented in
+  a fixed font, including names of utilities, URLs, variable names,
+  and code samples. Names of objects in the standard library,
+  however, are presented in italics. Names of modules and packages
+  are printed in a sans serif typeface.  Heading come in several
+  different fonts, depending on their level and purpose.
+
+  All constants, functions, and classes in discussions and
+  cross-references will be explicitly prepended with their
+  namespace (module).  Methods will additionally be prepended
+  with their class.  In some cases, code examples will use the
+  local namespace, but a preference for explicit namespace
+  identification will be present in sample code also.  For
+  example, a reference might read:
+
+  -->
+
+  SEE ALSO, `email.Generator.DecodedGenerator.flatten()`,
+  `raw_input()`, `tempfile.mktemp()`
+
+  <--
+
+  The first is a class method in the [email.Generator] module;
+  the second, a built-in function; the last, a function in the
+  [tempfile] module.
+
+  In the special case of built-in methods on types, the
+  expression for an empty type object will be used in the style
+  of a namespace modifier.  For example:
+
+  -->+
+
+  Methods of built-in types include `[].sort()`, `"".islower()`,
+  `{}.keys()`, and `(lambda:1).func_code`.
+
+  <--
+
+  The file object type will be indicated by the name 'FILE' in
+  capitals; A reference to a file object method will appear as,
+  for example:
+
+  -->
+
+  SEE ALSO, `FILE.flush()`
+
+  <--
+
+  Brief inline illustrations of Python concepts and
+  usage will be taken from the Python interactive shell.  This
+  approach allows readers to see the immediate evaluation of
+  constructs, much as they might explore Python themselves.
+  Moreover, examples presented in this manner will be
+  self-sufficient (not requiring external data), and may be
+  entered--with variations--by readers trying to get a grasp on a
+  concept.  For example:
+
+  -->+
+
+      #*----- Shell sample -----#
+      >>> 13/7  # integer division
+      1
+      >>> 13/7. # float division
+      1.8571428571428572
+
+  <--
+
+  In documentation of module functions, where named arguments are
+  available, they are listed with their default value.  Optional
+  arguments are listed in square brackets.  These conventions are
+  also used in the _Python Library Reference_.  For example:
+
+  -->
+
+  foobar.spam(s, val=23 [,taste="spicy"])
+      The function `foobar.spam()` uses the argument 's' to ...
+
+  <--
+
+  If~a~named argument does not have a specifiable default value,
+  the argument is listed followed by an equal sign and ellipsis.
+  For example:
+
+  -->
+
+  foobar.baz(string=..., maxlen=...)
+      The `foobar.baz()` function ...
+
+  <--
+
+  With the introduction of Unicode support to Python, an
+  equivalence between a character and a byte no longer holds in
+  all cases.  Where an operation takes a numeric argument
+  affecting a string-like object, the documentation will specify
+  whether characters or bytes are being counted.  For example:
+
+  -->+
+
+  Operation A reads 'num' bytes from the buffer.  Operation B
+  reads 'num' characters from the buffer.
+
+  <--
+
+  The first operation indicates a number of actual 8-bit bytes
+  affected.  The second operation indicates an indefinite number of
+  bytes are affected, but that they compose a number of (maybe
+  multibyte) characters.
+
+
+SECTION 5 -- A Word on Source Code Examples
+-------------------------------------------------------------------
+
+  First things first.  All the source code in this book is hereby
+  released to the public domain.  You can use it however you
+  like, without restriction.  You can include it in free
+  software, or in commercial/proprietary projects.  Change it to
+  your heart's content, and in any manner you want.  If you feel
+  like giving credit to the author (or sending him large checks)
+  for code you find useful, that is fine--but no obligation to do
+  so exists.
+
+  All the source code in this book, and various other public
+  domain examples, can be found at the book's Web site.  If such
+  an electronic form is more convenient for you, we hope this
+  helps you.  In fact, if you are able, you might benefit from
+  visiting this location, where you might find updated versions
+  of examples or other useful utilities not mentioned in the
+  book.
+
+  First things out of the way, let us turn to second things.
+  Little of the source code in this book is intended as a final
+  say on how to perform a given task.  Many of the examples are
+  easy enough to copy directly into your own program, or to use
+  as stand-alone utilities.  But the real goal in presenting the
+  examples is educational.  We really hope you will -think- about
+  what the examples do, and why they do it the way they do.  In
+  fact, we hope readers will think of better, faster, and more
+  general ways of performing the same tasks.  If the examples
+  work their best, they should be better as inspirations than as
+  instructions.
+
+
+SECTION 6 -- External Resources
+-------------------------------------------------------------------
+
+  TOPIC -- General Resources
+  --------------------------------------------------------------------
+
+  A good clearinghouse for resources and links related to this
+  book is the book's Web site. Over time, I will add errata and
+  additional examples, questions, answers, utilities, and so on to
+  the site, so check it from time to time:
+
+    <http://gnosis.cx/TPiP/>
+
+  The first place you should probably turn for -any- question on
+  Python programming (after this book), is:
+
+    <http://www.python.org/>
+
+  The Python newsgroup '<comp.lang.python>' is an amazingly useful
+  resource, with discussion that is generally both friendly and
+  erudite.  You may also post to and follow the newsgroup via a
+  mirrored mailing list:
+
+    <http://mail.python.org/mailman/listinfo/python-list>
+
+  TOPIC -- Books
+  --------------------------------------------------------------------
+
+  This book generally aims at an intermediate reader.  Other
+  Python books are better introductory texts (especially for
+  those fairly new to programming generally).  Some good
+  introductory texts are:
+
+    _Core Python Programming_, Wesley J. Chun, Prentice Hall,
+    2001.  ISBN:  0-130-26036-3.
+
+    _Learning Python_, Mark Lutz & David Ascher, O'Reilly, 1999.
+    ISBN:  1-56592-464-9.
+
+    _The Quick Python Book_, Daryl Harms & Kenneth McDonald,
+    Manning, 2000.  ISBN:  1-884777-74-0.
+
+  As introductions, I would generally recommend these books in the
+  order listed, but learning styles vary between readers.
+
+  Two texts that overlap this book somewhat, but focus more
+  narrowly on referencing the standard library are:
+
+    _Python Essential Reference, Second Edition_, David M.
+    Beazley, New Riders, 2001.  ISBN:  0-7357-1091-0.
+
+    _Python Standard Library_, Fredrik Lundh, O'Reilly, 2001.
+    ISBN:  0-596-00096-0.
+
+  For coverage of XML, at a far more detailed level than this
+  book has room for, is the excellent text:
+
+    _Python & XML_, Christopher A. Jones & Fred L. Drake, Jr.,
+    O'Reilly, 2002.  ISBN:  0-596-00128-2.
+
+
+  TOPIC -- Software Directories
+  --------------------------------------------------------------------
+
+  Currently, the best Python-specific directory for software is
+  the Vaults of Parnassus:
+
+    <http://www.vex.net/parnassus/>
+
+  SourceForge is a general open source software resource.  Many
+  projects--Python and otherwise--are hosted at that site, and
+  the site provides search capabilities, keywords, category
+  browsing, and the like:
+
+    <http://sourceforge.net/>
+
+  Freshmeat is another widely used directory of software projects
+  (mostly open source).  Like the Vaults of Parnassus, Freshmeat
+  does not directly host project files, but simply acts as an
+  information clearinghouse for finding relevant projects:
+
+    <http://freshmeat.net/>
+
+
+  TOPIC -- Specific Software
+  --------------------------------------------------------------------
+
+  A number of Python projects are discussed in this book.  Most
+  of those are listed in one or more of the software directories
+  mentioned above.  A general search engine like Google,
+  <http://google.com>, is also useful in locating project
+  home pages.  Below are a number of project URLs that are current
+  at the time of this writing.  If any of these fall out of date
+  by the time you read this book, try searching in a search
+  engine or software directory for an updated URL.
+
+  The author's -Gnosis Utilities- contains a number of Python
+  packages mentioned in this book, including [gnosis.indexer],
+  [gnosis.xml.indexer], [gnosis.xml.pickle], and others.  You can
+  download the most current version from:
+
+    <http://gnosis.cx/download/Gnosis_Utils-current.tar.gz>
+
+  eGenix.com provides a number of useful Python extensions, some
+  of which are documented in this book.  These include
+  [mx.TextTools], [mx.DateTime], severeral new datatypes, and
+  other facilities:
+
+    <http://egenix.com/files/python/eGenix-mx-Extensions.html>
+
+  [SimpleParse] is hosted by SourceForge, at:
+
+    <http://simpleparse.sourceforge.net/>
+
+  The [PLY] parsers has a home page at:
+
+    <http://systems.cs.uchicago.edu/ply/ply.html>«
+
+
+

@@ -1,0 +1,149 @@
+FRONTMATTER -- ACKNOWLEDGMENTS:
+-------------------------------------------------------------------
+
+  Portions of this book are adapted from my column _Charming
+  Python_ and other writing first published by -IBM
+  developerWorks-, <http://ibm.com/developerWorks/>. I wish to
+  thank IBM for publishing me, for granting permission to use this
+  material, and most especially for maintaining such a general and
+  useful resource for programmers.
+
+  +++
+
+  The Python community is a wonderfully friendly place. I made
+  drafts of this book, while in progress, available on the
+  Internet. I received numerous helpful and kind responses, many
+  that helped make the book better than it would otherwise have
+  been.
+
+  In particular, the following folks made suggestions and
+  contributions to the book while in draft form. I apologize to any
+  correspondents I may have omitted from the list; your advice was
+  appreciated even if momentarily lost in the bulk of my saved
+  email.
+
+  +++
+
+  Sam Penrose <sam@ddmweb.com>
+
+    UserDict string substitution hacks.
+
+  Roman Suzi <rnd@onego.ru>
+
+    More on string substitution hacks.
+
+  Samuel S. Chessman <chessman@tux.org>
+
+    Helpful observations of various typos.
+
+  John W. Krahn <krahnj@acm.org>
+
+    Helpful observations of various typos.
+
+  Terry J. Reedy <tjreedy@udel.edu>
+
+    Found lots of typos and made good organizational suggestions.
+
+  Amund Tveit <amund.tveit@idi.ntnu.no>
+
+    Pointers to word-based Huffman compression for Appendix B.
+
+  Pascal Oberndoerfer <oberndoerfer@mac.com>
+
+    Suggestions about focus of parser discussion.
+
+  Bob Weiner <bob@deepware.com>
+
+    Suggestions about focus of parser discussion.
+
+  Max M <maxm@mxm.dk>
+
+    Thought provocation about XML and Unicode entities.
+
+  John Machin <sjmachin@lexicon.net>
+
+    Nudging to improve sample regular expression functions.
+
+  Magnus Lie Hetland <magnus@hetland.org>
+
+    Called use of default "static" arguments "spooky code" and
+    failed to appreciate the clarity of the '<>' operator.
+
+  Tim Andrews <Tim.Andrews@adpro.com.au>
+
+    Found lots of typos in Chapters 3 and 2.
+
+  Marc-Andre Lemburg <mal@lemburg.com>
+
+    Wrote [mx.TextTools] in the first place and made helpful
+    comments on my coverage of it.
+
+  Mike C. Fletcher <mcfletch@users.sourceforge.net>
+
+    Wrote [SimpleParse] in the first place and made helpful
+    comments on my coverage of it.
+
+  Lorenzo M. Catucci <lorenzo@sancho.ccd.uniroma2.it>
+
+    Suggested glossary entries for CRC and hash.
+
+  David LeBlanc <whisper@oz.net>
+
+    Various organizational ideas while in draft.  Then he wound
+    up acting as one of my technical reviewers and provided a
+    huge amount of helpful advice on both content and
+    organization.
+
+  Mike Dussault <dussault@valvesoftware.com>
+
+    Found an error in combinatorial HOFs and made good
+    suggestions on Appendix A.
+
+  Guillermo Fernandez <guillermo.fernandez@epfl.ch>
+
+    Advice on clarifying explanations of compression techniques.
+
+  Roland Gerlach <roland@rkga.com.au>
+
+    Typos are boundless, but a bit less for his email.
+
+  Antonio Cuni <cuni@programmazione.it>
+
+    Found error in original Schwartzian sort example and another
+    in 'map()'/'zip()' discussion.
+
+  Michele Simionato <mis6+@pitt.edu>
+
+    Acted as a nice sounding board for deciding on final
+    organization of the appendices.
+
+  Jesper Hertel <jh@magnus.dk>
+
+    Was frustrated that I refused to take his well-reasoned
+    advice for code conventions.
+
+  Andrew MacIntyre <andymac@bullseye.apana.org.au>
+
+    Did not comment on this book, but has maintained the OS/2
+    port of Python for several versions.  This made my life
+    easier by letting me test and write examples on my favorite
+    machine.
+
+  Tim Churches <tchur@optushome.com.au>
+
+    A great deal of subversive entertainment, despite not
+    actually fixing anything in this book.
+
+  Moshe Zadka <moshez@twistedmatrix.com>
+
+    Served as technical reviewer of this book in manuscript and
+    brought both erudition and an eye for detail to the job.
+
+  Sergey Konozenko <sergey_konozenko@ieee.org>
+
+    Boosted my confidence in final preparation with the
+    enthusiasm he brought to his technical review--and even more
+    so with the acuity with which he "got" my attempts to impose
+    mental challenge on my readers.
+
+
