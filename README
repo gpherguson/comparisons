@@ -49,7 +49,7 @@ stress. Swiping a phrase from Shakespeare, "To sleep: perchance to dream...".
 Ruby's "POLS" attitde - "Principle of least surprise", seems to make the
 libraries do more common-sense things by default. For example, Nokogiri is my
 XML/HTML parser of choice, and it makes it really easy to surf through XML, RSS
-and HTML docs. Compare the longer searche commands required for Perl and
+and HTML docs. Compare the longer search commands required for Perl and
 Python's parsers in the "rss" code for an example. I used Nokogiri for
 production aggregator I wrote, and it was nicely handling malformed RSS that
 other parsers croaked on, so I'm pretty happy and familiar with it. Perl's
