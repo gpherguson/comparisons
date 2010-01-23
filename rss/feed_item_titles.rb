@@ -1,7 +1,7 @@
 #!/usr/bin/env ruby -w
 
 #
-# Code to read RSS and Atom feeds, parse the article titles, and print them.
+# Code to read Guitar Center's used equipment feed, parse the article titles, and print them as a HTML page.
 #
 
 require 'rubygems'
