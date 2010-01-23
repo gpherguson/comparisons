@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 
 """
-Code to read RSS and Atom feeds, parse the article titles, and print them.
+Code to read Guitar Center's used equipment feed, parse the article titles, and print them as a HTML page.
 """
 
 import operator
@@ -50,7 +50,7 @@ def sortkeypicker(keynames):
 
     
 try:
-    feedbody = urllib2.urlopen(BASE_URL + FEED_URL,None,URL_OPEN_TIMEOUT).read()
+    feedbody = urllib2.urlopen(BASE_URL + FEED_URL, None, URL_OPEN_TIMEOUT).read()
 except IOError, e:
     if hasattr(e, 'reason'):
         print 'Cannot reach {0}'.format(BASE_URL)

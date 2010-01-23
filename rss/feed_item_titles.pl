@@ -1,6 +1,6 @@
 #!/usr/bin/env perl
 
-# Code to read RSS and Atom feeds, parse the article titles, and print them.
+# Code to read Guitar Center's used equipment feed, parse the article titles, and print them as a HTML page.
 
 use HTTP::Date;
 use LWP::Simple qw($ua get);
@@ -58,17 +58,17 @@ foreach my $item ($dom1->getElementsByTagName('item')) {
     my $item_title       = get_title($item);
 
     my $u = URI->new_abs($item_link, $BASE_URL);
-    
+
     # The time stamp is really a date, so we'll truncate the time portion.
     my $parsed_date = str2time(substr($item_pub_date, 0, 16));
     my ($mday, $mon, $year) = (localtime($parsed_date))[3 .. 5]; 
 
     push(@lines, {
-        'description' => $item_description,
-        'link' => $u,
-        'pubdate' => sprintf('%02d/%02d/%04d', 1 + $mon, $mday, 1900 + $year),
-        'type' => $item_title
-    });
+            'description' => $item_description,
+            'link'        => $u,
+            'pubdate'     => sprintf('%02d/%02d/%04d', 1 + $mon, $mday, 1900 + $year),
+            'type'        => $item_title
+        });
 }
 
 # sort the lines...
