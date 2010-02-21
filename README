@@ -90,3 +90,8 @@ rss - This was to get an idea how I could navigate retrieved feeds using
 get_docs - Code to retrieve the "Text Process in Python" files. Again, these
            were in front of me when I came up with the idea.
 
+craigslist_jobs - Code to retrieve current programming jobs that interest me
+        from my location (Phoenix-ish) with some keywords. Tweak the URL for
+        your location and the keywords to whatever you want. Outputs a standard
+        Content-type header and the RSS content so you can use them as a CGI.
+
