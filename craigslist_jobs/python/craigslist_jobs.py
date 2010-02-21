@@ -33,4 +33,6 @@ rss.channel.description = "Software jobs of interest at Craig's List"
 for l in item_list:
     rss.addItem(l)
 
+print "Content-type: application/rss+xml"
+print
 print rss.write()
