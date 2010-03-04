@@ -9,7 +9,7 @@ require 'set'
 
 JOBS_URL    = 'http://phoenix.craigslist.org/sof/index.html'
 HREF_SUBSTR = %r{phoenix\.craigslist\.org/evl/sof/}
-JOB_REGEX   = %r/\b(?:perl|ruby|sql|python|postgres)\b/i
+JOB_KEYWORDS = %w[ perl ruby sql python postgres ]
 
 mech = Mechanize.new
 
@@ -26,7 +26,7 @@ content = RSS::Maker.make('2.0') do |_feed|
     mech.get(_link.href)
     response_body = Nokogiri::HTML(mech.page.content).inner_text
 
-    hits = response_body.split(' ').select{ |w| w[JOB_REGEX] }.to_set
+    hits = response_body.split(' ').select{ |w| JOB_KEYWORDS.include?(w.downcase) }.to_set
     if (hits.any?)
       post_date = response_body[/Date:\s+(\S+\s+\S+\s+\S+)/i, 1]
       i = _feed.items.new_item
