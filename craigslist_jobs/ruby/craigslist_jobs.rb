@@ -9,7 +9,7 @@ require 'set'
 
 JOBS_URL    = 'http://phoenix.craigslist.org/sof/index.html'
 HREF_SUBSTR = %r{phoenix\.craigslist\.org/evl/sof/}
-JOB_KEYWORDS = %w[ perl ruby sql python postgres ]
+JOB_KEYWORDS = %w[ perl ruby python postgres ]
 
 mech = Mechanize.new
 
