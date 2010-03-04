@@ -3,11 +3,13 @@
 require 'rubygems'
 require 'mechanize'
 require 'nokogiri'
+require 'uri'
 require 'rss'
+require 'set'
 
-JOBS_URL   = 'http://phoenix.craigslist.org/sof/index.html'
-HREF_REGEX = %r{phoenix\.craigslist\.org/evl/sof/}
-JOB_REGEX  = %r/\b(?:perl|ruby|sql|python|postgres)\b/i
+JOBS_URL    = 'http://phoenix.craigslist.org/sof/index.html'
+HREF_SUBSTR = %r{phoenix\.craigslist\.org/evl/sof/}
+JOB_REGEX   = %r/\b(?:perl|ruby|sql|python|postgres)\b/i
 
 mech = Mechanize.new
 
@@ -19,17 +21,19 @@ content = RSS::Maker.make('2.0') do |_feed|
   _feed.channel.description = "Software jobs of interest at Craig's List"
   _feed.items.do_sort       = true # sort items by date
 
-  mech.page.links_with(:href => HREF_REGEX).each do |_link|
+  mech.page.links_with(:href => HREF_SUBSTR).each do |_link|
 
     mech.get(_link.href)
     response_body = Nokogiri::HTML(mech.page.content).inner_text
 
-    if ( response_body[JOB_REGEX] ) 
+    hits = response_body.split(' ').select{ |w| w[JOB_REGEX] }.to_set
+    if (hits.any?)
       post_date = response_body[/Date:\s+(\S+\s+\S+\s+\S+)/i, 1]
-      item = _feed.items.new_item
-      item.date  = Time.parse(post_date)
-      item.link  = _link.href
-      item.title = mech.page.at('h2').text.squeeze(' ').strip
+      i = _feed.items.new_item
+      i.date        = Time.parse(post_date)
+      i.link        = _link.href
+      i.title       = mech.page.at('h2').text.squeeze(' ').strip
+      i.description = 'Matching words: ' << hits.to_a.join(', ')
     end
   end
 end
@@ -37,4 +41,3 @@ end
 puts "Content-type: application/rss+xml"
 puts
 puts content, "\n"
-
