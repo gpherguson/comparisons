@@ -2,6 +2,7 @@
 
 # Code to read Guitar Center's used equipment feed, parse the article titles, and print them as a HTML page.
 
+use CGI;
 use HTTP::Date;
 use LWP::Simple qw($ua get);
 use URI;
@@ -34,6 +35,8 @@ sub get_publish_date {
     my $_item = shift;
     return (($_item->getElementsByTagName('pubDate'))[0]->childNodes)[0]->nodeValue;
 }
+
+my $cgi = new CGI;
 
 my $feedbody;
 $ua->timeout($URL_OPEN_TIMEOUT);
@@ -94,7 +97,7 @@ foreach my $line (@sorted_lines) {
         $line->{'pubdate'},
         $line->{'link'},
         $line->{'type'},
-        $line->{'description'}
+        $cgi->escapeHTML($line->{'description'})
     );
 }
 

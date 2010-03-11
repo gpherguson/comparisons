@@ -5,6 +5,7 @@
 #
 
 require 'rubygems'
+require 'cgi'
 require 'open-uri'
 require 'nokogiri'
 require 'time'
@@ -89,7 +90,7 @@ lines.sort_by{ |a| a['type'] + ' ' + a['description'] }.each do |line|
     line['pubdate'],
     line['link'],
     line['type'],
-    line['description']
+    CGI.escapeHTML(line['description'])
   ]
 end
 
