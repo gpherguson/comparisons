@@ -17,6 +17,18 @@ BASE_URL = 'http://used.guitarcenter.com/usedGear/'
 FEED_URL = 'usedListings_rss.xml'
 URL_OPEN_TIMEOUT = 10
 
+HTML_ESCAPE_TABLE = {
+    "&": "&amp;",
+    '"': "&quot;",
+    "'": "&apos;",
+    ">": "&gt;",
+    "<": "&lt;",
+    }
+
+def html_escape(text):
+    """Produce entities within text."""
+    return ''.join(HTML_ESCAPE_TABLE.get(c, c) for c in text)
+
 def get_title(_item):
     """ get the title for the element. """
     return _item.getElementsByTagName('title')[0].childNodes[0].nodeValue
@@ -109,7 +121,7 @@ for line in sorted_lines:
         line['pubdate'],
         line['link'],
         line['type'],
-        line['description']
+        html_escape(line['description'])
     )
 
 print '</table></body></html>'
