@@ -15,6 +15,12 @@ BASE_URL = 'http://used.guitarcenter.com/usedGear/'
 FEED_URL = 'usedListings_rss.xml'
 URL_OPEN_TIMEOUT = 10
 
+CSS = '
+table { background-color: #efefef; }
+tr { vertical-align: top; }
+th { text-align: left; background-color: #dfdfdf; border: 1px solid #cfcfcf; }
+'
+
 # get the title for the element.
 def get_title(_item)
   return _item.at('title').text
@@ -44,6 +50,7 @@ rescue => e
 end
 
 dom1 = Nokogiri::XML(feedbody)
+q = CGI.new('html4')
 
 feed_description = get_description(dom1)
 feed_link        = get_link(dom1)
@@ -65,33 +72,32 @@ for item in (dom1.search('item')) do
 
   lines << {
     'description' => item_description,
-    'link'        => u,
+    'link'        => u.to_s,
     'pubdate'     => parsed_date.strftime('%m/%d/%Y'),
     'type'        => item_title
   } 
 end
 
-puts '<html><head><title>%s</title>' % feed_title
-# add CSS or JavaScript here.
-puts '<style type="text/css">'
-puts 'table { background-color: #efefef; }'
-puts 'tr { vertical-align: top; }'
-puts 'th { text-align: left; background-color: #dfdfdf; border: 1px solid #cfcfcf; }'
-puts '</style>'
-puts '</head>'
-puts '<body><h3><a href=\"%s\">%s</a></h3>' % [ feed_link, feed_title ]
-puts '<h4>%s</h4>' % feed_description
-puts '<table>'
-puts '<tr><th>Published</th><th>Type</th><th>Description</th></tr>'
+q.out(){
+  q.html(){
+    q.head{ 
+      q.style('type' => 'text/css'){ CSS } +
+      q.title{ feed_title }
+    } +
+    q.body(){
+      q.table(){
+        q.tr(){
+          %w[ Published Type Description ].map{ |t| q.th{ t } }.join
+        } + 
+        lines.sort_by{ |_l| _l['type'] + ' ' + _l['description'] }.map { |_line|
+          q.tr(){
+            q.td(){ _line['pubdate'] } +
+            q.td(){ q.a( 'href' => _line['link'] ){ _line['type'] } } +
+            q.td(){ CGI.escapeHTML( _line['description'] ) } 
+          }
+        }.join("\n")
+      }
+    }
+  }
+}
 
-# sort and show the lines...
-lines.sort_by{ |a| a['type'] + ' ' + a['description'] }.each do |line|
-  puts '<tr><td>%s</td><td><a href="%s">%s</a></td><td>%s</td></tr>' % [
-    line['pubdate'],
-    line['link'],
-    line['type'],
-    CGI.escapeHTML(line['description'])
-  ]
-end
-
-puts '</table></body></html>'

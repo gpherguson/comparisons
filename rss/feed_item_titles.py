@@ -2,20 +2,19 @@
 
 """
 Code to read Guitar Center's used equipment feed, parse the article titles, and print them as a HTML page.
+
+lxml.html.builder can be used to generate HTML, so *maybe* this will get equivalent code to the other versions using that. *maybe*
 """
 
+from lxml import etree
 import operator
 import re
 import time
-import urllib2
 import urlparse
-import xml.dom.minidom
 
-import pdb
 
 BASE_URL = 'http://used.guitarcenter.com/usedGear/'
 FEED_URL = 'usedListings_rss.xml'
-URL_OPEN_TIMEOUT = 10
 
 HTML_ESCAPE_TABLE = {
     "&": "&amp;",
@@ -31,19 +30,19 @@ def html_escape(text):
 
 def get_title(_item):
     """ get the title for the element. """
-    return _item.getElementsByTagName('title')[0].childNodes[0].nodeValue
+    return _item.xpath('title/text()')[0]
 
 def get_description(_item):
     """ get the description for the element. """
-    return _item.getElementsByTagName('description')[0].childNodes[0].nodeValue
+    return _item.xpath('description/text()')[0]
 
 def get_link(_item):
     """ get the link for the element. """
-    return _item.getElementsByTagName('link')[0].childNodes[0].nodeValue
+    return _item.xpath('link/text()')[0]
 
 def get_publish_date(_item):
     """ get the publish date for the element. """
-    return _item.getElementsByTagName('pubDate')[0].childNodes[0].nodeValue
+    return _item.xpath('pubDate/text()')[0]
 
 def sortkeypicker(keynames):
     """ from: http://stackoverflow.com/questions/1143671/python-sorting-list-of-dictionaries-by-multiple-keys/1143719#1143719 """
@@ -61,27 +60,15 @@ def sortkeypicker(keynames):
     return getit
 
     
-try:
-    feedbody = urllib2.urlopen(BASE_URL + FEED_URL, None, URL_OPEN_TIMEOUT).read()
-except IOError, e:
-    if hasattr(e, 'reason'):
-        print 'Cannot reach {0}'.format(BASE_URL)
-        print 'Reason:', e.reason
-    elif hasattr(e, 'code'):
-        print 'Connection failed.'
-        print 'Error code:', e.code
+dom1 = etree.parse(BASE_URL + FEED_URL)
 
-dom1 = xml.dom.minidom.parseString(feedbody)
-
-feed_description = get_description(dom1)
-feed_link        = get_link(dom1)
-feed_title       = get_title(dom1)
-
-# pdb.set_trace()
+feed_description = '' + get_description(dom1.xpath('//channel')[0])
+feed_link        = '' + get_link(dom1.xpath('//channel')[0])
+feed_title       = '' + get_title(dom1.xpath('//channel')[0])
 
 # gather the lines...
 lines = []
-for item in (dom1.getElementsByTagName('item')):
+for item in (dom1.xpath('//item')):
     item_description = get_description(item)
     item_link        = get_link(item)
     item_pub_date    = get_publish_date(item)
@@ -93,10 +80,10 @@ for item in (dom1.getElementsByTagName('item')):
     parsed_date = time.strptime(item_pub_date[0:16], '%a, %d %b %Y')
     
     lines.append({
-        'description': item_description,
-        'link': u,
+        'description': '' + item_description,
+        'link': '' + u,
         'pubdate': time.strftime('%m/%d/%Y', parsed_date),
-        'type': item_title
+        'type': '' + item_title
     }) 
 
 # sort the lines...
@@ -126,4 +113,3 @@ for line in sorted_lines:
 
 print '</table></body></html>'
 
-dom1.unlink()
